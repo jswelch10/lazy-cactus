@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Joinery Helper</title>
+    <meta charset="utf-8">
+</head>
+<body>
+	div>div#page>p.title+p|c
+</body>
+</html>
+
+document.createElement("div")
+const joinery = document.getElementById("joinery");
+
+		this.mainElement.setAttribute("id", UserInterfaceID);
+		this.mainElement.setAttribute("style", mainCSS);
+
+		const scanButton = document.createElement("button");
+		scanButton.setAttribute("id", "scanBtn");
+		scanButton.setAttribute("type", "button");
+		scanButton.setAttribute("style", buttonCSS);
+		// scanButton.setAttribute("onclick", this.scan.);
+		scanButton.onclick = this.scan.bind(this);
+
+		const scanBtnContent = document.createTextNode("Scan");
+		scanButton.appendChild(scanBtnContent);
+		this.mainElement.appendChild(scanButton);
+
+		const resetButton = document.createElement("button");
+		resetButton.setAttribute("id", "resetBtn");
+		resetButton.setAttribute("type", "button");
+		resetButton.setAttribute("style", buttonCSS);
+		// scanButton.setAttribute("onclick", this.scan.);
+		resetButton.onclick = this.reset.bind(this);
+
+		const resetBtnContent = document.createTextNode("Reset");
+		resetButton.appendChild(resetBtnContent);
+		this.mainElement.appendChild(resetButton);
+
+
+		joinery.appendChild(this.mainElement);
+
+		this.makeUIDraggable(UserInterfaceID);
+		const setupRow = document.querySelector(".data-grid-table-row");
+		setupRow.click();
+		document.querySelector('[aria-label="Measurements"]').click();
+		setupRow.click();
