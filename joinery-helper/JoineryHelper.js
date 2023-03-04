@@ -115,9 +115,11 @@ class JoineryHelper {
 
 		this.measurementsTab = document.querySelector('[aria-label="Measurements"]');
 		this.fieldsTab = document.querySelector('[aria-label="Work Order Fields"]');
+		this.workflowTab = document.querySelector('[aria-label="Workflow"]');
 
 		this.widthInputRef = document.getElementById('input_44');
 		this.heightInputRef = document.getElementById('input_45');
+		this.matOpeningRef = document.querySelector('#tab-content-8 .production-info:first-child tr:nth-last-child(2) b');
 		this.workOrderInstructionsRef = document.getElementById('input_39');
 		this.saveButtonRef = document.querySelector('.work-order-form-save-popup > button');
 
@@ -128,16 +130,20 @@ class JoineryHelper {
 
 		this.workOrderNumRef = document.querySelector("#tab-content-5 .production-info tr:nth-child(3) td:last-child");
 		this.artDimensionsRef = document.querySelector(".artwork-info > div:last-of-type");
+
+
+		this.workflowTab.click();
 		this.digitalArtReviewRef = document.querySelector('md-checkbox[aria-label="Digital Art Review"]');
 
 
 
-		// const setupRow = document.querySelector(".data-grid-table-row");
+		const setupRow = document.querySelector(".data-grid-table-row");
 		//
 		// // this code is needed to initialize the sidebar for a proper scan
-		// setupRow.click();
+		setupRow.click();
+		this.fieldsTab.click();
 		// this.measurementsTab.click();
-		// setupRow.click();
+		setupRow.click();
 	}
 
 	scan() {
@@ -146,7 +152,7 @@ class JoineryHelper {
 
 		rows.forEach( (row, index, array) => {
 			row.click();
-			this.measurementsTab.click();
+			// this.measurementsTab.click();
 
 			const currWorkOrderNum = this.workOrderNumRef.innerHTML;
 			console.log(currWorkOrderNum);
@@ -156,26 +162,49 @@ class JoineryHelper {
 				if (found) return this.changeRowColor(row, 'skip');
 			}
 			const isMessageFlagged = !row.children[9].children[0].classList.contains("ng-hide");
+			//TODO: message flagged non dimMismatched triggering "flagged-need-change"
+			if (isMessageFlagged) return this.changeRowColor(row, 'flagged');
+
+
+			const isNoMatOrFloat = !row.children[9].children[11].classList.contains("ng-hide");
+			const matDimMismatch = !row.children[9].children[10].classList.contains("ng-hide");
+			const isDimensionFlagged = isNoMatOrFloat || matDimMismatch
 
 			const [artWidth, artHeight] = this.processArtDimensions(this.artDimensionsRef.innerText);
-			const matOpeningWidth = parseFloat(this.widthInputRef.value);
-			const matOpeningHeight = parseFloat(this.heightInputRef.value);
-			console.log('openings: ', matOpeningWidth, matOpeningHeight);
+			// these refs are based off  the fields tab which has been shown to be unreliable
+				const matOpeningWidth = parseFloat(this.widthInputRef.value);
+				const matOpeningHeight = parseFloat(this.heightInputRef.value);
 
-			let needsChange = false;
-			let changes = [currWorkOrderNum];
+			 // const [matOpeningWidth, matOpeningHeight] = this.matOpeningRef.innerText;
+
+
+			console.log('openings: ', matOpeningWidth, matOpeningHeight);
 			// after the first float, noMat are incorrectly looking in the wrong place?
 			// conditionally check if a float exists and if not, only then check if a
 
 
-			this.fieldsTab.click();
-			//document.querySelector('[aria-label="Mat: No Mat - NM00"]'); this returns an item if it exists
-			//const isNoMatOrFloat = this.mountingTypeRef.innerText === 'Float #1' || this.matStyleRef.innerText === 'Float Mounting (+$25) - Float' || this.matStyleRef.innerText === 'No Mat - NM00';
-			const isNoMatOrFloat = this.mountingTypeRef.innerText === 'Float #1'
-				|| !!document.querySelector('[aria-label="Mat: Float Mounting (+$25) - Float"]')
-				|| !!document.querySelector('[aria-label="Mat: No Mat - NM00"]')
+
+
+			//const isNoMatOrFloat = this.mountingTypeRef.innerText === 'Float #1'
+			// 	|| this.matStyleRef.innerText === 'Float Mounting (+$25) - Float'
+			// 	|| this.matStyleRef.innerText === 'No Mat - NM00';
+
+			//******* below code is not 100% accurate, keeping around to work off of
+
+			// this.fieldsTab.click();
+			// 	const isNoMatOrFloat = this.mountingTypeRef.innerText === 'Float #1'
+			// 		|| !!document.querySelector('[aria-label="Mat: Float Mounting (+$25) - Float"]')
+			// 		|| !!document.querySelector('[aria-label="Mat: No Mat - NM00"]')
+
+			//*******
+
+			// const isNoMatOrFloat = ![...row.children[9].children[11].classList].includes("ng-hide");
+
 			// console.log('mat style: ',  this.matStyleRef, this.matStyleRef.innerText);
 			// console.log('mounting type: ', this.mountingTypeRef, this.mountingTypeRef.innerText);
+
+
+			if (!isDimensionFlagged && !isMessageFlagged) return this.changeRowColor(row, 'success');
 
 			const data = {
 				"workOrderNum": currWorkOrderNum,
@@ -186,43 +215,18 @@ class JoineryHelper {
 					matOpeningWidth,
 					matOpeningHeight
 				},
-				isNoMatOrFloat
+				isNoMatOrFloat,
 			}
 
-			if(data.isNoMatOrFloat) {
-				if(this.mathChecksOut(data)) {
-					console.log('good noMat/Float', data);
-					if (isMessageFlagged) return this.changeRowColor(row, 'flagged-no-change');
-					return this.changeRowColor(row, 'no-change');
-				} else {
-					console.log('bad noMat/Float', data);
-					changes.push('gray fix')
-					needsChange = true;
-				}
+
+
+			if(this.mathChecksOut(data)) {
+				// if (isMessageFlagged) return this.changeRowColor(row, 'flagged-no-change');
+				return this.changeRowColor(row, 'no-change');
 			} else {
-				if(this.mathChecksOut(data)) {
-					console.log('good dimensions', data);
-					if (isMessageFlagged) return this.changeRowColor(row, 'flagged-no-change');
-					return this.changeRowColor(row, 'no-change');
-				} else {
-					console.log('bad dimensions', data);
-					changes.push('wrong size');
-					needsChange = true;
-				}
-			}
-
-
-			if(needsChange){
-				console.log('needsChange triggered');
-				this.changeLog.push(changes)
+				// if (isMessageFlagged) return this.changeRowColor(row, 'flagged-need-change');
 				this.toBeFixedLog.push(data);
-				if (isMessageFlagged) return this.changeRowColor(row, 'flagged-need-change');
 				return this.changeRowColor(row, 'need-change');
-			} else {
-				if (isMessageFlagged) return this.changeRowColor(row, 'flagged-no-change');
-				this.toBeReviewedLog.push(data);
-				console.log('success');
-				return this.changeRowColor(row, 'success');
 			}
 		});
 	
@@ -235,10 +239,12 @@ class JoineryHelper {
 			return {row}
 		});
 
+		this.workflowTab.click();
+
 		this.jobInterval(arr, (data) => {
 
-			this.digitalArtReviewRef.click();
-
+			// this.digitalArtReviewRef.click();
+			document.querySelector('md-checkbox[aria-label="Digital Art Review"]').click();
 		});
 	};
 
@@ -325,7 +331,7 @@ class JoineryHelper {
 			let modifier = data.isNoMatOrFloat ? 0 : .25;
 			this.changeOpeningValues(data.measurements.artWidth, data.measurements.artHeight, modifier);
 
-		});
+		}, 3000);
 
 			//modifier = current.isNoMatOrFloat ? 0 : .25;
 			// this.changeOpeningValues(current.measurements.artWidth, current.measurements.artHeight, modifier);
@@ -481,7 +487,9 @@ class JoineryHelper {
 			case 'need-change':
 				rowEl.style.backgroundColor = 'yellow';
 				break;
-
+			case 'flagged':
+				rowEl.style.backgroundColor = 'orange';
+				break;
 			case 'flagged-no-change':
 				rowEl.style.backgroundColor = 'tomato';
 				break;
