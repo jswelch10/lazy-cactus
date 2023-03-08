@@ -43,69 +43,106 @@ class JoineryHelper {
 		this.mainElement.setAttribute("id", UserInterfaceID);
 		this.mainElement.setAttribute("style", mainCSS);
 
-		const scanButton = document.createElement("button");
-		scanButton.setAttribute("id", "scanBtn");
-		scanButton.setAttribute("type", "button");
-		scanButton.setAttribute("style", buttonCSS);
-		scanButton.onclick = this.scan.bind(this);
+		const btnArr = [
+			['scan', this.scan],
+			['fix', this.fixMeasurements],
+			['star', this.addStars],
+			['DAR', this.completeDigitalArtReview],
+			['cancel', this.cancel],
+			['reset', this.reset]
+		];
 
-		const scanBtnContent = document.createTextNode("Scan");
-		scanButton.appendChild(scanBtnContent);
-		this.mainElement.appendChild(scanButton);
+		btnArr.forEach( ([btnName, func]) => {
+			const btn = document.createElement("button");
+			btn.setAttribute("id", `${btnName}Btn`);
+			btn.setAttribute("type", "button");
+			btn.setAttribute("style", buttonCSS);
+			btn.onclick = func.bind(this);
 
-		const fixButton = document.createElement("button");
-		fixButton.setAttribute("id", "fixBtn");
-		fixButton.setAttribute("type", "button");
-		fixButton.setAttribute("style", buttonCSS);
-		fixButton.onclick = this.fixMeasurements.bind(this);
+			const btnContent = document.createTextNode(btnName);
+			btn.appendChild(btnContent);
+			this.mainElement.appendChild(btn);
+		})
 
-		const fixBtnContent = document.createTextNode("Fix Selected");
-		fixButton.appendChild(fixBtnContent);
-		this.mainElement.appendChild(fixButton);
+		const txtInput = document.createElement("input");
+		txtInput.setAttribute('type','text');
+		txtInput.setAttribute('id','helperTxtInput');
+		txtInput.setAttribute('value', 'Excluded W/O\'s');
+		this.mainElement.appendChild(txtInput);
 
-		////////////////////////////////////////////////////////////
+		const saveBtn = document.createElement("button");
+		saveBtn.setAttribute("id", 'saveBtn');
+		saveBtn.setAttribute("type", "button");
+		saveBtn.setAttribute("style", buttonCSS);
+		saveBtn.onclick = this.readExcluded.bind(this);
 
-		const starButton = document.createElement("button");
-		starButton.setAttribute("id", "starBtn");
-		starButton.setAttribute("type", "button");
-		starButton.setAttribute("style", buttonCSS);
-		starButton.onclick = this.addWorkOrderInstructionStars.bind(this);
+		const btnContent = document.createTextNode('save');
+		saveBtn.appendChild(btnContent);
+		this.mainElement.appendChild(saveBtn);
 
-		const starBtnContent = document.createTextNode("*** Selected");
-		starButton.appendChild(starBtnContent);
-		this.mainElement.appendChild(starButton);
-
-		const darButton = document.createElement("button");
-		darButton.setAttribute("id", "darBtn");
-		darButton.setAttribute("type", "button");
-		darButton.setAttribute("style", buttonCSS);
-		darButton.onclick = this.completeDigitalArtReview.bind(this);
-
-		const darBtnContent = document.createTextNode("DAR Selected");
-		darButton.appendChild(darBtnContent);
-		this.mainElement.appendChild(darButton);
-
-		const cancelButton = document.createElement("button");
-		cancelButton.setAttribute("id", "cancelBtn");
-		cancelButton.setAttribute("type", "button");
-		cancelButton.setAttribute("style", buttonCSS);
-		cancelButton.onclick = this.cancel.bind(this);
-
-		const cancelBtnContent = document.createTextNode("Cancel Job");
-		cancelButton.appendChild(cancelBtnContent);
-		this.mainElement.appendChild(cancelButton);
-
-		////////////////////////////////////////////////////////////
-
-		const resetButton = document.createElement("button");
-		resetButton.setAttribute("id", "resetBtn");
-		resetButton.setAttribute("type", "button");
-		resetButton.setAttribute("style", buttonCSS);
-		resetButton.onclick = this.reset.bind(this);
-
-		const resetBtnContent = document.createTextNode("Reset");
-		resetButton.appendChild(resetBtnContent);
-		this.mainElement.appendChild(resetButton);
+		// const scanButton = document.createElement("button");
+		// scanButton.setAttribute("id", "scanBtn");
+		// scanButton.setAttribute("type", "button");
+		// scanButton.setAttribute("style", buttonCSS);
+		// scanButton.onclick = this.scan.bind(this);
+		//
+		// const scanBtnContent = document.createTextNode("Scan");
+		// scanButton.appendChild(scanBtnContent);
+		// this.mainElement.appendChild(scanButton);
+		//
+		// const fixButton = document.createElement("button");
+		// fixButton.setAttribute("id", "fixBtn");
+		// fixButton.setAttribute("type", "button");
+		// fixButton.setAttribute("style", buttonCSS);
+		// fixButton.onclick = this.fixMeasurements.bind(this);
+		//
+		// const fixBtnContent = document.createTextNode("Fix Selected");
+		// fixButton.appendChild(fixBtnContent);
+		// this.mainElement.appendChild(fixButton);
+		//
+		// ////////////////////////////////////////////////////////////
+		//
+		// const starButton = document.createElement("button");
+		// starButton.setAttribute("id", "starBtn");
+		// starButton.setAttribute("type", "button");
+		// starButton.setAttribute("style", buttonCSS);
+		// starButton.onclick = this.addWorkOrderInstructionStars.bind(this);
+		//
+		// const starBtnContent = document.createTextNode("*** Selected");
+		// starButton.appendChild(starBtnContent);
+		// this.mainElement.appendChild(starButton);
+		//
+		// const darButton = document.createElement("button");
+		// darButton.setAttribute("id", "darBtn");
+		// darButton.setAttribute("type", "button");
+		// darButton.setAttribute("style", buttonCSS);
+		// darButton.onclick = this.completeDigitalArtReview.bind(this);
+		//
+		// const darBtnContent = document.createTextNode("DAR Selected");
+		// darButton.appendChild(darBtnContent);
+		// this.mainElement.appendChild(darButton);
+		//
+		// const cancelButton = document.createElement("button");
+		// cancelButton.setAttribute("id", "cancelBtn");
+		// cancelButton.setAttribute("type", "button");
+		// cancelButton.setAttribute("style", buttonCSS);
+		// cancelButton.onclick = this.cancel.bind(this);
+		//
+		// const cancelBtnContent = document.createTextNode("Cancel Job");
+		// cancelButton.appendChild(cancelBtnContent);
+		// this.mainElement.appendChild(cancelButton);
+		//
+		// ////////////////////////////////////////////////////////////
+		//
+		// const resetButton = document.createElement("button");
+		// resetButton.setAttribute("id", "resetBtn");
+		// resetButton.setAttribute("type", "button");
+		// resetButton.setAttribute("style", buttonCSS);
+		// resetButton.onclick = this.reset.bind(this);
+		//
+		// const resetBtnContent = document.createTextNode("Reset");
+		// resetButton.appendChild(resetBtnContent);
+		// this.mainElement.appendChild(resetButton);
 
 
 		joinery.appendChild(this.mainElement);
@@ -144,6 +181,10 @@ class JoineryHelper {
 		this.fieldsTab.click();
 		// this.measurementsTab.click();
 		setupRow.click();
+	}
+
+	readExcluded() {
+		this.excludedWorkorders = [...document.getElementById('helperTxtInput').value.split(' ')];
 	}
 
 	scan() {
@@ -242,8 +283,6 @@ class JoineryHelper {
 		this.workflowTab.click();
 
 		this.jobInterval(arr, (data) => {
-
-			// this.digitalArtReviewRef.click();
 			document.querySelector('md-checkbox[aria-label="Digital Art Review"]').click();
 		});
 	};
@@ -321,7 +360,7 @@ class JoineryHelper {
 	}
 
 	fixMeasurements() {
-		// this.fieldsTab.click();
+		this.fieldsTab.click();
 
 		const arr = this.toBeFixedLog; //returns [ {data}, ... ]
 		// const arr = this.getRows(this.toBeFixedLog, false); // returns [ rowElement, ...]
@@ -332,68 +371,9 @@ class JoineryHelper {
 			this.changeOpeningValues(data.measurements.artWidth, data.measurements.artHeight, modifier);
 
 		}, 3000);
-
-			//modifier = current.isNoMatOrFloat ? 0 : .25;
-			// this.changeOpeningValues(current.measurements.artWidth, current.measurements.artHeight, modifier);
-
 	};
 
-	// fixMeasurements() {
-	// 	const arr = this.toBeFixedLog;
-	// 	let counter = 0;
-	// 	let setup = true;
-	// 	let time = 0;
-	// 	let current;
-	// 	const bufferTime = 3 ;
-	// 	let bufferCounter = 0;
-	// 	let modifier = 0;
-	// 	// e.g. data = {}
-	// 	// const form = document.querySelector('#tab-content-6 form');
-	// 	this.intervalID = setInterval(()=>{
-	// 		let formReady = !this.saveButtonRef.hasAttribute('disabled');
-	// 		console.log('form ready: ', formReady);
-	// 		if(counter === arr.length){
-	// 			clearInterval(this.intervalID);
-	// 			console.log('interval cleared');
-	// 		} else {
-	// 			if(setup) {
-	// 				console.log('starting setup');
-	// 				current = arr[counter];
-	// 				console.log(current);
-	// 				current.row.click();
-	// 				modifier = current.isNoMatOrFloat ? 0 : .25;
-	// 				setup = false;
-	// 				console.log('setup: ',current, modifier, setup);
-	// 			}
-	// 			if(!this.waitingForJoinery){
-	// 				console.log('joinery Open!')
-	// 				this.changeValues(current.measurements.artWidth, current.measurements.artHeight, modifier); // set current item to given parameters
-	// 				console.log('new values changed: ', current.measurements.artWidth - modifier, current.measurements.artHeight - modifier);
-	// 				this.waitingForJoinery = true;
-	// 				console.log('joinery closed? ', this.waitingForJoinery);
-	// 			}
-	// 			if(formReady) { //maybe not related to formReady, but func is skipping every other row, myabe too fast?
-	// 				if(bufferCounter < bufferTime) {
-	// 					bufferCounter++;
-	// 				} else {
-	// 					console.log('done saving');
-	// 					this.waitingForJoinery = false;
-	// 					counter++;
-	// 					console.log('new counter: ', counter);
-	// 					setup = true;
-	// 					bufferCounter = 0;
-	// 					console.log('setup reset');
-	// 				}
-	// 			}
-	//
-	// 			console.log(`${time} seconds have passed...`);
-	// 			time++;
-	// 		}
-	// 	},1000);
 
-
-	//setInterval with a function with a nested if statement checking classList on the sidebar to determine if it is active
-		// if it is able to be manipulated then click and change the data and increment the current counter to an array index i.e. array[i];
 	getRows(rowsFromLogArr, isScan) {
 		if(rowsFromLogArr.length > 0) return rowsFromLogArr.reduce(data => data.row);
 		const allRows = Array.from(document.querySelectorAll(".data-grid-table-row"));
@@ -423,16 +403,13 @@ class JoineryHelper {
 		}
 	}
 
-	addStars() {// should return true if no changes are made
+	addStars() {
 		let string = this.workOrderInstructionsRef.value
 		console.log('WOI Value: ', string);
 		if (string.slice(-3) === "***") return
 		console.log("doesn't have stars already");
-		//check if stars are last 3 char in input
-			//if not add them
 		this.workOrderInstructionsRef.dispatchEvent(new Event('focus'));
 		this.workOrderInstructionsRef.value = string +'***';
-		console.log('WOI New Value: ', string);
 		this.workOrderInstructionsRef.dispatchEvent(new Event('change'));
 		this.workOrderInstructionsRef.dispatchEvent(new Event('blur'));
 
@@ -469,7 +446,6 @@ class JoineryHelper {
 	}
 
 	processArtDimensions(string) {
-		// string = string.replaceAll('"', '').replaceAll('&nbsp;x&nbsp;', ',').replaceAll('','');
 		string = string.replaceAll(/[wh'" ]/g, '')
 		const dimensions = string.split('x');
 		return [this.roundEighthFloor(parseFloat(dimensions[0])), this.roundEighthFloor(parseFloat(dimensions[1]))];
@@ -481,9 +457,6 @@ class JoineryHelper {
 			case 'success':
 				rowEl.style.backgroundColor = 'lime';
 				break;
-			// case 'current':
-			// 	rowEl.style.backgroundColor = 'fuchsia';
-			// 	break;
 			case 'need-change':
 				rowEl.style.backgroundColor = 'yellow';
 				break;
@@ -558,11 +531,3 @@ class JoineryHelper {
 		}
 	}
 }
-
-
-	//order info tab				document.querySelector("#tab-content-5")
-	//work order fields tab			document.querySelector("#tab-content-6")
-
-
-	//workflow tab					document.querySelector("#tab-content-11")
-		//digital art review check		document.querySelector("[aria-label='Digital Art Review']")
