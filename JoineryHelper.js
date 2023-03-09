@@ -9,7 +9,6 @@ class JoineryHelper {
 
 		// this.init(workorders);
 
-		//add human element variable to slow down inputs for external log time evasion
 		//perhaps an iterator function that progresses based on promises, and a loop that continuously runs?
 
 
