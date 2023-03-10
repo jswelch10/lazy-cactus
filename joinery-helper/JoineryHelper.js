@@ -165,7 +165,7 @@ class JoineryHelper {
 		this.matStyleRef = document.getElementById('select_6649');
 
 
-		this.workOrderNumRef = document.querySelector("#tab-content-5 .production-info tr:nth-child(3) td:last-child");
+		this.workOrderNumRef = document.querySelector("#tab-content-4 .production-info tr:nth-child(3) td:last-child");
 		this.artDimensionsRef = document.querySelector(".artwork-info > div:last-of-type");
 
 
