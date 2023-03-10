@@ -157,7 +157,7 @@ class JoineryHelper {
 		this.widthInputRef = document.getElementById('input_43');
 		this.heightInputRef = document.getElementById('input_44');
 		this.matOpeningRef = document.querySelector('#tab-content-8 .production-info:first-child tr:nth-last-child(2) b');
-		this.workOrderInstructionsRef = document.getElementById('input_39');
+		this.workOrderInstructionsRef = document.getElementById('input_38');
 		this.saveButtonRef = document.querySelector('.work-order-form-save-popup > button');
 
 		this.mountingTypeRef = document.getElementById('select_42');
