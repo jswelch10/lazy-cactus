@@ -154,10 +154,10 @@ class JoineryHelper {
 		this.fieldsTab = document.querySelector('[aria-label="Work Order Fields"]');
 		this.workflowTab = document.querySelector('[aria-label="Workflow"]');
 
-		this.widthInputRef = document.getElementById('input_43');
-		this.heightInputRef = document.getElementById('input_44');
+		this.widthInputRef = document.getElementById('input_44');
+		this.heightInputRef = document.getElementById('input_45');
 		this.matOpeningRef = document.querySelector('#tab-content-8 .production-info:first-child tr:nth-last-child(2) b');
-		this.workOrderInstructionsRef = document.getElementById('input_38');
+		this.workOrderInstructionsRef = document.getElementById('input_39');
 		this.saveButtonRef = document.querySelector('.work-order-form-save-popup > button');
 
 		this.mountingTypeRef = document.getElementById('select_42');
@@ -165,7 +165,7 @@ class JoineryHelper {
 		this.matStyleRef = document.getElementById('select_6649');
 
 
-		this.workOrderNumRef = document.querySelector("#tab-content-4 .production-info tr:nth-child(3) td:last-child");
+		this.workOrderNumRef = document.querySelector("#tab-content-5 .production-info tr:nth-child(3) td:last-child");
 		this.artDimensionsRef = document.querySelector(".artwork-info > div:last-of-type");
 
 
