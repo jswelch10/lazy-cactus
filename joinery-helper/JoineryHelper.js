@@ -46,10 +46,11 @@ class JoineryHelper {
 		const btnArr = [
 			['scan', this.scan],
 			['fix', this.fixMeasurements],
-			['star', this.addStars],
+			['star', this.addWorkOrderInstructionStars],
 			['DAR', this.completeDigitalArtReview],
 			['cancel', this.cancel],
-			['reset', this.reset]
+			['reset', this.reset],
+			['report', this.report]
 		];
 
 		btnArr.forEach( ([btnName, func]) => {
@@ -196,15 +197,24 @@ class JoineryHelper {
 			// this.measurementsTab.click();
 
 			const currWorkOrderNum = this.workOrderNumRef.innerHTML;
+			const changeLogData = {
+				workOrderNum: currWorkOrderNum,
+				fixes: []
+			}
 			console.log(currWorkOrderNum);
-			// skip workorders(WO's) that match constructor parameter
+
 			if(this.excludedWorkorders && this.excludedWorkorders.length > 0) {
 				const found = this.excludedWorkorders.find(WO => WO === currWorkOrderNum );
-				if (found) return this.changeRowColor(row, 'skip');
+				if (found) {
+					changeLogData.fixes.push('proofing');
+					return this.changeRowColor(row, 'skip');
+				}
 			}
 			const isMessageFlagged = !row.children[9].children[0].classList.contains("ng-hide");
+			if (isMessageFlagged) changeLogData.fixes.push('red flag');
 			//TODO: message flagged non dimMismatched triggering "flagged-need-change"
-			if (isMessageFlagged) return this.changeRowColor(row, 'flagged');
+
+			// if (isMessageFlagged) return this.changeRowColor(row, 'flagged');
 
 
 			const isNoMatOrFloat = !row.children[9].children[11].classList.contains("ng-hide");
@@ -220,8 +230,7 @@ class JoineryHelper {
 
 
 			console.log('openings: ', matOpeningWidth, matOpeningHeight);
-			// after the first float, noMat are incorrectly looking in the wrong place?
-			// conditionally check if a float exists and if not, only then check if a
+
 
 
 
@@ -247,6 +256,7 @@ class JoineryHelper {
 
 			if (!isDimensionFlagged && !isMessageFlagged) return this.changeRowColor(row, 'success');
 
+
 			const data = {
 				"workOrderNum": currWorkOrderNum,
 				row,
@@ -262,11 +272,19 @@ class JoineryHelper {
 
 
 			if(this.mathChecksOut(data)) {
-				// if (isMessageFlagged) return this.changeRowColor(row, 'flagged-no-change');
+				if (isMessageFlagged) {
+					this.changeLog.push(changeLogData);
+					return this.changeRowColor(row, 'flagged-no-change');
+				}
+				// if (isMessageFlagged) return this.changeRowColor(row, 'flagged');
 				return this.changeRowColor(row, 'no-change');
 			} else {
 				// if (isMessageFlagged) return this.changeRowColor(row, 'flagged-need-change');
+				changeLogData.fixes.push('sizing');
+				this.changeLog.push(changeLogData);
 				this.toBeFixedLog.push(data);
+
+				if (isMessageFlagged) return this.changeRowColor(row, 'flagged-need-change');
 				return this.changeRowColor(row, 'need-change');
 			}
 		});
@@ -298,7 +316,6 @@ class JoineryHelper {
 
 		});
 	}
-
 
 	jobInterval(dataArr, func){
 		const debugMode =  this.jobDebug;
@@ -373,7 +390,6 @@ class JoineryHelper {
 		}, 3000);
 	};
 
-
 	getRows(rowsFromLogArr, isScan) {
 		if(rowsFromLogArr.length > 0) return rowsFromLogArr.reduce(data => data.row);
 		const allRows = Array.from(document.querySelectorAll(".data-grid-table-row"));
@@ -445,6 +461,24 @@ class JoineryHelper {
 		// this.mainElement.remove();
 	}
 
+	reportClick(e) {
+		document.execCommand('copy');
+	}
+
+	report() {
+		//TODO implement clipboard api for chrome extension
+		console.clear();
+		console.log('***** CHANGE LOG *****');
+		this.changeLog.forEach(item => {
+
+			console.log(
+				`${item.workOrderNum} : ${item.fixes.join(' ')}`
+			)
+
+		});
+		console.log('***** CHANGE LOG END *****')
+	}
+
 	processArtDimensions(string) {
 		string = string.replaceAll(/[wh'" ]/g, '')
 		const dimensions = string.split('x');
@@ -464,10 +498,10 @@ class JoineryHelper {
 				rowEl.style.backgroundColor = 'orange';
 				break;
 			case 'flagged-no-change':
-				rowEl.style.backgroundColor = 'tomato';
+				rowEl.style.backgroundColor = 'lightpink';
 				break;
 			case 'flagged-need-change':
-				rowEl.style.backgroundColor = 'firebrick';
+				rowEl.style.backgroundColor = 'lightcoral';
 				break;
 			case 'skip':
 			case 'error':
