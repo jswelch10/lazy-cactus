@@ -281,10 +281,11 @@ class JoineryHelper {
 			} else {
 				// if (isMessageFlagged) return this.changeRowColor(row, 'flagged-need-change');
 				changeLogData.fixes.push('sizing');
-				this.changeLog.push(changeLogData);
-				this.toBeFixedLog.push(data);
+				this.changeLog.push(changeLogData);				
 
 				if (isMessageFlagged) return this.changeRowColor(row, 'flagged-need-change');
+				
+				this.toBeFixedLog.push(data);
 				return this.changeRowColor(row, 'need-change');
 			}
 		});
