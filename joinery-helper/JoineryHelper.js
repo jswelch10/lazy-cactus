@@ -21,6 +21,43 @@ class JoineryHelper {
 		this.init();
 	}
 	init() {
+
+		this.craftUI();
+
+		this.measurementsTab = document.querySelector('[aria-label="Measurements"]');
+		this.fieldsTab = document.querySelector('[aria-label="Work Order Fields"]');
+		this.workflowTab = document.querySelector('[aria-label="Workflow"]');
+
+		this.widthInputRef = document.getElementById('input_44');
+		this.heightInputRef = document.getElementById('input_45');
+		this.matOpeningRef = document.querySelector('#tab-content-8 .production-info:first-child tr:nth-last-child(2) b');
+		this.workOrderInstructionsRef = document.getElementById('input_39');
+		this.saveButtonRef = document.querySelector('.work-order-form-save-popup > button');
+
+		this.mountingTypeRef = document.getElementById('select_42');
+		// this.matStyleRef = document.querySelectorAll(".production-info")[2].children[0].children[0].children[1].children[0];
+		this.matStyleRef = document.getElementById('select_6649');
+
+
+		this.workOrderNumRef = document.querySelector("#tab-content-5 .production-info tr:nth-child(3) td:last-child");
+		this.artDimensionsRef = document.querySelector(".artwork-info > div:last-of-type");
+
+
+		this.workflowTab.click();
+		this.digitalArtReviewRef = document.querySelector('md-checkbox[aria-label="Digital Art Review"]');
+
+
+
+		const setupRow = document.querySelector(".data-grid-table-row");
+		//
+		// // this code is needed to initialize the sidebar for a proper scan
+		setupRow.click();
+		this.fieldsTab.click();
+		// this.measurementsTab.click();
+		setupRow.click();
+	}
+
+	craftUI() {
 		const UserInterfaceID = "joineryHelper";
 		const buttonCSS =
 			'background-color:purple;' +
@@ -149,43 +186,12 @@ class JoineryHelper {
 		joinery.appendChild(this.mainElement);
 
 		this.makeUIDraggable(UserInterfaceID);
-
-
-		this.measurementsTab = document.querySelector('[aria-label="Measurements"]');
-		this.fieldsTab = document.querySelector('[aria-label="Work Order Fields"]');
-		this.workflowTab = document.querySelector('[aria-label="Workflow"]');
-
-		this.widthInputRef = document.getElementById('input_44');
-		this.heightInputRef = document.getElementById('input_45');
-		this.matOpeningRef = document.querySelector('#tab-content-8 .production-info:first-child tr:nth-last-child(2) b');
-		this.workOrderInstructionsRef = document.getElementById('input_39');
-		this.saveButtonRef = document.querySelector('.work-order-form-save-popup > button');
-
-		this.mountingTypeRef = document.getElementById('select_42');
-		// this.matStyleRef = document.querySelectorAll(".production-info")[2].children[0].children[0].children[1].children[0];
-		this.matStyleRef = document.getElementById('select_6649');
-
-
-		this.workOrderNumRef = document.querySelector("#tab-content-5 .production-info tr:nth-child(3) td:last-child");
-		this.artDimensionsRef = document.querySelector(".artwork-info > div:last-of-type");
-
-
-		this.workflowTab.click();
-		this.digitalArtReviewRef = document.querySelector('md-checkbox[aria-label="Digital Art Review"]');
-
-
-
-		const setupRow = document.querySelector(".data-grid-table-row");
-		//
-		// // this code is needed to initialize the sidebar for a proper scan
-		setupRow.click();
-		this.fieldsTab.click();
-		// this.measurementsTab.click();
-		setupRow.click();
 	}
+
 
 	readExcluded() {
 		this.excludedWorkorders = [...document.getElementById('helperTxtInput').value.split(' ')];
+		//TODO: needs a more robust string manipulation to handle user errors
 	}
 
 	scan() {
@@ -267,9 +273,11 @@ class JoineryHelper {
 					matOpeningHeight
 				},
 				isNoMatOrFloat,
+				isDimensionFlagged
 			}
 
-
+			//problem arises because accurate float/nomat items wwihtout an error flag are thought to be -.25 when they're not, thus triggering a wrong reading
+			//solution is to assume items without a mismatch flag are correctly measured, rather than measuring them to get a false reading
 
 			if(this.mathChecksOut(data)) {
 				if (isMessageFlagged) {
@@ -412,7 +420,10 @@ class JoineryHelper {
 	}
 
 	mathChecksOut(data) {
+		if(!data.isDimensionFlagged) return true;
+
 		const {measurements} = data;
+
 		if(data.isNoMatOrFloat) {
 			return (measurements.artWidth === measurements.matOpeningWidth && measurements.artHeight === measurements.matOpeningHeight);
 		} else {
