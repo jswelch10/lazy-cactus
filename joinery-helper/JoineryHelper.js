@@ -3,7 +3,7 @@ class JoineryHelper {
 		this.skipLog = [];
 		this.toBeFixedLog = [];
 		this.toBeReviewedLog = [];
-		this.changeLog = [];
+		this.changeLog = []; //array of changeLogData Objects
 		this.waitingForJoinery = false;
 		this.excludedWorkorders = [];
 		this.mainElement = document.createElement("div");
@@ -105,7 +105,8 @@ class JoineryHelper {
 		const txtInput = document.createElement("input");
 		txtInput.setAttribute('type','text');
 		txtInput.setAttribute('id','helperTxtInput');
-		txtInput.setAttribute('value', 'Excluded W/O\'s');
+		txtInput.setAttribute('placeholder', 'Excluded W/O\'s');
+		txtInput.onmousedown = (e) => e.stopPropagation();
 		this.mainElement.appendChild(txtInput);
 
 		const saveBtn = document.createElement("button");
@@ -197,8 +198,9 @@ class JoineryHelper {
 	scan() {
 		// setup rows based on selectedItems || allItems;
 		const rows = this.getRows('', true);
-
+		const max = rows.length;
 		rows.forEach( (row, index, array) => {
+			console.log(`item ${index+1}/${max}`);
 			row.click();
 			// this.measurementsTab.click();
 
@@ -207,7 +209,6 @@ class JoineryHelper {
 				workOrderNum: currWorkOrderNum,
 				fixes: []
 			}
-			console.log(currWorkOrderNum);
 
 			if(this.excludedWorkorders && this.excludedWorkorders.length > 0) {
 				const found = this.excludedWorkorders.find(WO => WO === currWorkOrderNum );
@@ -218,47 +219,15 @@ class JoineryHelper {
 			}
 			const isMessageFlagged = !row.children[9].children[0].classList.contains("ng-hide");
 			if (isMessageFlagged) changeLogData.fixes.push('red flag');
-			//TODO: message flagged non dimMismatched triggering "flagged-need-change"
-
-			// if (isMessageFlagged) return this.changeRowColor(row, 'flagged');
-
 
 			const isNoMatOrFloat = !row.children[9].children[11].classList.contains("ng-hide");
 			const matDimMismatch = !row.children[9].children[10].classList.contains("ng-hide");
 			const isDimensionFlagged = isNoMatOrFloat || matDimMismatch
 
 			const [artWidth, artHeight] = this.processArtDimensions(this.artDimensionsRef.innerText);
-			// these refs are based off  the fields tab which has been shown to be unreliable
-				const matOpeningWidth = parseFloat(this.widthInputRef.value);
-				const matOpeningHeight = parseFloat(this.heightInputRef.value);
 
-			 // const [matOpeningWidth, matOpeningHeight] = this.matOpeningRef.innerText;
-
-
-			console.log('openings: ', matOpeningWidth, matOpeningHeight);
-
-
-
-
-
-			//const isNoMatOrFloat = this.mountingTypeRef.innerText === 'Float #1'
-			// 	|| this.matStyleRef.innerText === 'Float Mounting (+$25) - Float'
-			// 	|| this.matStyleRef.innerText === 'No Mat - NM00';
-
-			//******* below code is not 100% accurate, keeping around to work off of
-
-			// this.fieldsTab.click();
-			// 	const isNoMatOrFloat = this.mountingTypeRef.innerText === 'Float #1'
-			// 		|| !!document.querySelector('[aria-label="Mat: Float Mounting (+$25) - Float"]')
-			// 		|| !!document.querySelector('[aria-label="Mat: No Mat - NM00"]')
-
-			//*******
-
-			// const isNoMatOrFloat = ![...row.children[9].children[11].classList].includes("ng-hide");
-
-			// console.log('mat style: ',  this.matStyleRef, this.matStyleRef.innerText);
-			// console.log('mounting type: ', this.mountingTypeRef, this.mountingTypeRef.innerText);
-
+			const matOpeningWidth = parseFloat(this.widthInputRef.value);
+			const matOpeningHeight = parseFloat(this.heightInputRef.value);
 
 			if (!isDimensionFlagged && !isMessageFlagged) return this.changeRowColor(row, 'success');
 
@@ -275,9 +244,6 @@ class JoineryHelper {
 				isNoMatOrFloat,
 				isDimensionFlagged
 			}
-
-			//problem arises because accurate float/nomat items wwihtout an error flag are thought to be -.25 when they're not, thus triggering a wrong reading
-			//solution is to assume items without a mismatch flag are correctly measured, rather than measuring them to get a false reading
 
 			if(this.mathChecksOut(data)) {
 				if (isMessageFlagged) {
@@ -473,21 +439,17 @@ class JoineryHelper {
 		// this.mainElement.remove();
 	}
 
-	reportClick(e) {
-		document.execCommand('copy');
-	}
-
 	report() {
 		//TODO implement clipboard api for chrome extension
 		console.clear();
 		console.log('***** CHANGE LOG *****');
+		let csvString = 'Workorder,Errors\n';
 		this.changeLog.forEach(item => {
 
-			console.log(
-				`${item.workOrderNum} : ${item.fixes.join(' ')}`
-			)
+			csvString +=`${item.workOrderNum},"${item.fixes.join(', ')}"\n`
 
 		});
+		console.log(csvString);
 		console.log('***** CHANGE LOG END *****')
 	}
 
