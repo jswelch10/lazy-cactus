@@ -1,4 +1,4 @@
-class JoineryHelper {
+ class JoineryHelper {
 	constructor(debug) {
 		this.skipLog = [];
 		this.toBeFixedLog = [];
@@ -539,3 +539,6 @@ class JoineryHelper {
 		}
 	}
 }
+
+const job = new JoineryHelper();
+
