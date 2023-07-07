@@ -1,0 +1,96 @@
+#JoineryHelper {
+    background-color: transparent;
+    position: absolute;
+    width:330px;
+    display:flex;
+    flex-direction: row-reverse;
+    z-index:10;
+
+    left: 54.5%;
+
+}
+.jh-tabs {
+    display:flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: stretch;
+}
+
+#JoineryHelper, .jh-tabs {
+    height: 160px
+}
+.jh-content {
+    background-color: lavender;
+    border: solid 2px purple;
+    border-right: none;
+    padding: 10px;
+    border-radius: 5px 0 0 5px;
+    flex-grow: 1;
+}
+
+.jh-content > div {
+    display: none;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: start;
+    height: 100%;
+
+}
+
+.jh-content .selected {
+    display:flex;
+}
+.jh-target-line span {
+    font-weight: bold;
+}
+
+.jh-tab-btn {
+    padding: 2px;
+    background-color: lavender;
+    border-color: purple;
+    border-left: lavender;
+    flex-grow: 1;
+    border-bottom: none;
+    border-right: solid 2px purple;
+    transition: background-color .25s ease-in-out, color .25s ease-in-out;
+
+}
+.jh-tab-btn:first-child {
+    border-radius: 0 5px 0 0;
+}
+.jh-tab-btn:last-child {
+    border-bottom: solid 2px;
+    border-radius: 0 0 5px 0;
+}
+
+.jh-bigBtn {
+    padding: 5px 35px;background-color: purple;
+    color: white;
+    border-radius: 10px;
+    border-color: purple;
+    transition: background-color .25s ease-in-out, color .25s ease-in-out;
+}
+
+.jh-tab-btn:hover, .jh-bigBtn:hover {
+    color:purple;
+    background-color:white;
+}
+
+.jh-tab-btn.active, .jh-tab-btn.active:hover {
+    color:white;
+    background-color:purple;
+}
+
+.jh-bigBtn:active {
+    box-shadow: inset 0 0 5px gray
+}
+
+#jh-in-progress-content {
+    justify-content: end;
+}
+.jh-throbber {
+    margin:auto;
+}
+.jh-cancelBtn {
+    align-self: end;
+}

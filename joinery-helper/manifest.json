@@ -18,6 +18,20 @@
     "service_worker": "background.js"
   },
 
+  "content_scripts": [
+    {
+      "matches": ["https://www.framebridge.com/*"],
+      "css": ["styles.css"]
+    }
+  ],
+
+  "web_accessible_resources": [
+    {
+      "resources": ["index.html", "styles.css", "JoineryHelper.js"],
+      "matches": ["https://www.framebridge.com/*"]
+    }
+  ],
+
   "permissions": [
     "storage", "scripting", "activeTab"
   ],

@@ -8,6 +8,23 @@
 		this.excludedWorkorders = [];
 		this.mainElement = document.createElement("div");
 		this.jobDebug = debug && true;
+		this.appState = {
+			"blastShield": false,
+			"scanSettings": {
+				"target": "all",
+				"autoFix": false,
+				"autoDar": false,
+				"excludedWorkOrders": [],
+			},
+			"fixSettings": {
+				"target": "yellows",
+				"unsavedNewTab": false,
+			},
+			"darSettings": {
+				"target": "greens"
+			}
+
+		}
 
 
 
@@ -22,7 +39,8 @@
 	}
 	init() {
 
-		this.craftUI();
+		// this.craftUI();
+		this.setupUI();
 
 		this.measurementsTab = document.querySelector('[aria-label="Measurements"]');
 		this.fieldsTab = document.querySelector('[aria-label="Work Order Fields"]');
@@ -57,7 +75,83 @@
 		setupRow.click();
 	}
 
+	setupUI(){
+		/* TODO: List of items that need to be connected:
+		*	  scanBtn
+		* 		target
+		* 		options
+		* 	  fixBtn
+		* 		target
+		* 		options
+		* 	  StarBtn
+		* 	  DARBtn
+		* 		target
+		* 		options?
+		* 	  CancelBtn
+		*     blastshield
+		* 	  resetBtn?
+		* 	  reportBtn
+		*  */
+		document.getElementById('jh-excluded').onmousedown = (e) => e.stopPropagation();
+
+		// add listener to tab btns to remove selected label and place on clicked item
+		// const tabs = Array.from(document.getElementsByClassName("jh-tab-btn"));
+		// const tabContents = Array.from(document.getElementsByClassName("jh-tab-content").children);
+
+		this.syncUI();
+		this.makeUIDraggable();
+	}
+	syncUI() {
+		const names = [
+			"scan",
+			"fix",
+			"dar",
+			"red-flags",
+			"report",
+			"settings"
+		];
+		const tabs = Array.from(document.getElementsByClassName('jh-tab-btn'));
+		const contents = Array.from(document.getElementsByClassName('jh-tab-content'));
+
+		names.forEach(name => {
+
+			const tab = document.getElementById(`jh-${name}-tab`);
+			const content = document.getElementById(`jh-${name}-content`);
+
+			tab.addEventListener("click", () => {
+				if(tab.classList.contains('active')) return
+
+				tabs.forEach(item => item.classList.remove("active"));
+				contents.forEach(item => item.classList.remove("selected"));
+
+				tab.classList.add("active");
+				content.classList.add("selected");
+
+			})
+		});
+
+		const btnArr = [
+			['scan', this.scan],
+			['fix', this.fixMeasurements],
+			['star', this.addWorkOrderInstructionStars],
+			['dar', this.completeDigitalArtReview],
+			['cancel', this.cancel],
+			['reset', this.reset],
+			['report', this.report]
+		];
+
+		btnArr.forEach( ([btnName, func]) => {
+			const btn = document.getElementById(`jh-${btnName}Btn`)
+
+			btn.onclick = func.bind(this);
+		})
+
+	}
+
 	craftUI() {
+		/*
+		* TODO: this will be redone to hookup class components to html file, exposed buttons will have access to this class's functions
+		* */
 		const UserInterfaceID = "joineryHelper";
 		const buttonCSS =
 			'background-color:purple;' +
@@ -196,6 +290,9 @@
 	}
 
 	scan() {
+		//toggle blast shield
+		this.toggleBlastShield();
+
 		// setup rows based on selectedItems || allItems;
 		const rows = this.getRows('', true);
 		const max = rows.length;
@@ -263,6 +360,10 @@
 				return this.changeRowColor(row, 'need-change');
 			}
 		});
+
+		this.toggleBlastShield();
+
+		//TODO: have scan send logs to the extension and storage
 	
 	}
 	//TODO turn this.waitingForJoinery or another setting into a setter function so it can trigger html blast screen;
@@ -453,6 +554,10 @@
 		console.log('***** CHANGE LOG END *****')
 	}
 
+	toggleBlastShield() {
+		this.appState.blastShield = !this.appState.blastShield
+	}
+
 	processArtDimensions(string) {
 		string = string.replaceAll(/[wh'" ]/g, '')
 		const dimensions = string.split('x');
@@ -493,9 +598,9 @@
 		return current === 0 ? 0: (current - .125);
 	}
 
-	makeUIDraggable(elementId) {
+	makeUIDraggable() {
 		// Make the DIV element draggable:
-		dragElement(document.getElementById(elementId));
+		dragElement(document.getElementById('JoineryHelper'));
 
 		function dragElement(elmnt) {
 			let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
@@ -539,6 +644,6 @@
 		}
 	}
 }
+console.log("JoineryHelper Loaded");
 
-const job = new JoineryHelper();
 
