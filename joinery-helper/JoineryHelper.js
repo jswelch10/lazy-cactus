@@ -1,15 +1,9 @@
  class JoineryHelper {
 	constructor(debug) {
-		this.skipLog = [];
-		this.toBeFixedLog = [];
-		this.toBeReviewedLog = [];
-		this.changeLog = []; //array of changeLogData Objects
-		this.waitingForJoinery = false;
-		this.excludedWorkorders = [];
-		this.mainElement = document.createElement("div");
-		this.jobDebug = debug && true;
+		// this.appState.waitingForJoinery = false;
+		this.jobDebug = debug && true; //TODO: add setting to turn on job debug mode
+		this.updateAppState = false;
 		this.appState = {
-			"blastShield": false,
 			"scanSettings": {
 				"target": "all",
 				"autoFix": false,
@@ -20,10 +14,16 @@
 				"target": "yellows",
 				"unsavedNewTab": false,
 			},
+			"flagSettings" : {
+				"star" : true
+			},
 			"darSettings": {
 				"target": "greens"
-			}
-
+			},
+			"changeLog": [],
+			"toBeFixedLog": [],
+			"toBeDARedLog": [],
+			"waitingForJoinery": false
 		}
 
 
@@ -41,6 +41,8 @@
 
 		// this.craftUI();
 		this.setupUI();
+
+		this.blastShieldRef = document.getElementById("jh-blast-shield");
 
 		this.measurementsTab = document.querySelector('[aria-label="Measurements"]');
 		this.fieldsTab = document.querySelector('[aria-label="Work Order Fields"]');
@@ -77,26 +79,17 @@
 
 	setupUI(){
 		/* TODO: List of items that need to be connected:
-		*	  scanBtn
-		* 		target
-		* 		options
-		* 	  fixBtn
-		* 		target
-		* 		options
-		* 	  StarBtn
-		* 	  DARBtn
-		* 		target
-		* 		options?
-		* 	  CancelBtn
-		*     blastshield
-		* 	  resetBtn?
-		* 	  reportBtn
+		* 	 target
+		* 	 options
+		* 	 CancelBtn - will work for everything except scan
 		*  */
 		document.getElementById('jh-excluded').onmousedown = (e) => e.stopPropagation();
 
-		// add listener to tab btns to remove selected label and place on clicked item
-		// const tabs = Array.from(document.getElementsByClassName("jh-tab-btn"));
-		// const tabContents = Array.from(document.getElementsByClassName("jh-tab-content").children);
+		const func = this.appStateChanged
+		Array.from(document.querySelectorAll("#JoineryHelper input")).forEach( item => {
+			item.onchange = func.bind(this);
+		});
+
 
 		this.syncUI();
 		this.makeUIDraggable();
@@ -284,93 +277,96 @@
 	}
 
 
-	readExcluded() {
-		this.excludedWorkorders = [...document.getElementById('helperTxtInput').value.split(' ')];
-		//TODO: needs a more robust string manipulation to handle user errors
-	}
+	// readExcluded() {
+	// 	this.excludedWorkorders = [...document.getElementById('helperTxtInput').value.split(' ')];
+	//
+	// }
 
 	scan() {
-		//toggle blast shield
+		// TODO: convert scan function to use a setInterval so that it may be canceled early
 		this.toggleBlastShield();
-
+		if(this.updateAppState) this.updateState();
+		this.intervalID = setTimeout(() => {
 		// setup rows based on selectedItems || allItems;
-		const rows = this.getRows('', true);
-		const max = rows.length;
-		rows.forEach( (row, index, array) => {
-			console.log(`item ${index+1}/${max}`);
-			row.click();
-			// this.measurementsTab.click();
+			const rows = this.getRows(this.appState, 'scan');
+			const max = rows.length;
+			rows.forEach( (row, index, array) => {
+				console.log(`item ${index+1}/${max}`);
+				row.click();
+				// this.measurementsTab.click();
 
-			const currWorkOrderNum = this.workOrderNumRef.innerHTML;
-			const changeLogData = {
-				workOrderNum: currWorkOrderNum,
-				fixes: []
-			}
-
-			if(this.excludedWorkorders && this.excludedWorkorders.length > 0) {
-				const found = this.excludedWorkorders.find(WO => WO === currWorkOrderNum );
-				if (found) {
-					changeLogData.fixes.push('proofing');
-					return this.changeRowColor(row, 'skip');
+				const currWorkOrderNum = this.workOrderNumRef.innerHTML;
+				const changeLogData = {
+					workOrderNum: currWorkOrderNum,
+					fixes: []
 				}
-			}
-			const isMessageFlagged = !row.children[9].children[0].classList.contains("ng-hide");
-			if (isMessageFlagged) changeLogData.fixes.push('red flag');
 
-			const isNoMatOrFloat = !row.children[9].children[11].classList.contains("ng-hide");
-			const matDimMismatch = !row.children[9].children[10].classList.contains("ng-hide");
-			const isDimensionFlagged = isNoMatOrFloat || matDimMismatch
-
-			const [artWidth, artHeight] = this.processArtDimensions(this.artDimensionsRef.innerText);
-
-			const matOpeningWidth = parseFloat(this.widthInputRef.value);
-			const matOpeningHeight = parseFloat(this.heightInputRef.value);
-
-			if (!isDimensionFlagged && !isMessageFlagged) return this.changeRowColor(row, 'success');
-
-
-			const data = {
-				"workOrderNum": currWorkOrderNum,
-				row,
-				"measurements": {
-					artWidth,
-					artHeight,
-					matOpeningWidth,
-					matOpeningHeight
-				},
-				isNoMatOrFloat,
-				isDimensionFlagged
-			}
-
-			if(this.mathChecksOut(data)) {
-				if (isMessageFlagged) {
-					this.changeLog.push(changeLogData);
-					return this.changeRowColor(row, 'flagged-no-change');
+				if(this.appState.scanSettings.excludedWorkOrders
+				&& this.appState.scanSettings.excludedWorkOrders.length > 0) {
+					const found = this.appState.scanSettings.excludedWorkOrders.find(WO => WO === currWorkOrderNum );
+					if (found) {
+						changeLogData.fixes.push('proofing');
+						return this.changeRowColor(row, 'skip');
+					}
 				}
-				// if (isMessageFlagged) return this.changeRowColor(row, 'flagged');
-				return this.changeRowColor(row, 'no-change');
-			} else {
-				// if (isMessageFlagged) return this.changeRowColor(row, 'flagged-need-change');
-				changeLogData.fixes.push('sizing');
-				this.changeLog.push(changeLogData);				
+				const isMessageFlagged = !row.children[9].children[0].classList.contains("ng-hide");
+				if (isMessageFlagged) changeLogData.fixes.push('red flag');
 
-				if (isMessageFlagged) return this.changeRowColor(row, 'flagged-need-change');
-				
-				this.toBeFixedLog.push(data);
-				return this.changeRowColor(row, 'need-change');
-			}
-		});
+				const isNoMatOrFloat = !row.children[9].children[11].classList.contains("ng-hide");
+				const matDimMismatch = !row.children[9].children[10].classList.contains("ng-hide");
+				const isDimensionFlagged = isNoMatOrFloat || matDimMismatch
 
-		this.toggleBlastShield();
+				const [artWidth, artHeight] = this.processArtDimensions(this.artDimensionsRef.innerText);
 
-		//TODO: have scan send logs to the extension and storage
-	
+				const matOpeningWidth = parseFloat(this.widthInputRef.value);
+				const matOpeningHeight = parseFloat(this.heightInputRef.value);
+
+				if (!isDimensionFlagged && !isMessageFlagged) return this.changeRowColor(row, 'success');
+
+
+				const data = {
+					"workOrderNum": currWorkOrderNum,
+					row,
+					"measurements": {
+						artWidth,
+						artHeight,
+						matOpeningWidth,
+						matOpeningHeight
+					},
+					isNoMatOrFloat,
+					isDimensionFlagged,
+					isMessageFlagged
+				}
+
+				if(this.mathChecksOut(data)) {
+					if (isMessageFlagged) {
+						this.appState.changeLog.push(changeLogData);
+						return this.changeRowColor(row, 'flagged-no-change');
+					}
+					// if (isMessageFlagged) return this.changeRowColor(row, 'flagged');
+					return this.changeRowColor(row, 'no-change');
+				} else {
+					// if (isMessageFlagged) return this.changeRowColor(row, 'flagged-need-change');
+					changeLogData.fixes.push('sizing');
+					this.appState.changeLog.push(changeLogData);
+
+					this.appState.toBeFixedLog.push(data);
+					if (isMessageFlagged) return this.changeRowColor(row, 'flagged-need-change');
+
+					return this.changeRowColor(row, 'need-change');
+				}
+			});
+
+			// rows[rows.length-1].click();
+			this.toggleBlastShield();
+
+			//TODO: have scan send logs to the extension and storage
+		}, 500);
 	}
-	//TODO turn this.waitingForJoinery or another setting into a setter function so it can trigger html blast screen;
 
 	completeDigitalArtReview() {
 		//jobInterval functon needs an array of objects that posses a property "row" pointing to an html element
-		const arr = this.getRows('', false).map(row => {
+		const arr = this.getRows(this.appState, 'dar').map(row => {
 			return {row}
 		});
 
@@ -382,7 +378,7 @@
 	};
 
 	addWorkOrderInstructionStars() {
-		const arr = this.getRows('', false).map(row => {
+		const arr = this.getRows(this.appState, "flags").map(row => {
 			return {row}
 		});
 
@@ -394,13 +390,14 @@
 	}
 
 	jobInterval(dataArr, func){
-		const debugMode =  this.jobDebug;
+		const debugMode = this.jobDebug;
 		let counter = 0;
 		let setup = true;
 		let time = 0;
 		let data;
 		const bufferTime = 3 ;
 		let bufferCounter = 0;
+		this.toggleBlastShield();
 		this.intervalID = setInterval(()=>{
 
 			let formReady = !this.saveButtonRef.hasAttribute('disabled');
@@ -408,6 +405,7 @@
 			if(counter === dataArr.length){
 
 				clearInterval(this.intervalID);
+				this.toggleBlastShield();
 				console.log('job done: interval cleared');
 
 			} else {
@@ -421,12 +419,12 @@
 					if (debugMode) console.log('setup: ', data, setup);
 
 				}
-				if(!this.waitingForJoinery){
+				if(!this.appState.waitingForJoinery){
 					if (debugMode) console.log('joinery Open!');
 					func(data);
 					if (debugMode) console.log('provided function has run');
-					this.waitingForJoinery = true;
-					if (debugMode) console.log('joinery closed? ', this.waitingForJoinery);
+					this.appState.waitingForJoinery = true;
+					if (debugMode) console.log('joinery closed? ', this.appState.waitingForJoinery);
 
 				}
 				if(formReady) {
@@ -442,7 +440,7 @@
 						bufferCounter = 0;
 						counter++;
 						if (debugMode) console.log('new counter: ', counter);
-						this.waitingForJoinery = false;
+						this.appState.waitingForJoinery = false;
 
 					}
 				}
@@ -455,8 +453,14 @@
 	fixMeasurements() {
 		this.fieldsTab.click();
 
-		const arr = this.toBeFixedLog; //returns [ {data}, ... ]
-		// const arr = this.getRows(this.toBeFixedLog, false); // returns [ rowElement, ...]
+		// const arr = this.appState.toBeFixedLog; //returns [ {data}, ... ]
+		const arr = this.getRows(this.appState, "fix"); // returns [ rowElement, ...]
+		if (arr.length === 0){
+			console.log("fix measurements arr length: ", arr);
+			return
+		}
+
+		//needs [{data}, ...], not [rowElement]
 
 		this.jobInterval(arr, (data) => {
 
@@ -466,24 +470,116 @@
 		}, 3000);
 	};
 
-	getRows(rowsFromLogArr, isScan) {
-		if(rowsFromLogArr.length > 0) return rowsFromLogArr.reduce(data => data.row);
+	appStateChanged () {
+		console.log("state changed some more");
+		if(!this.updateAppState) this.updateAppState = true;
+
+	}
+
+	updateState() {
+		/* TODO:
+		* 	 target updates to improve performance
+		*    excludedWorkOrders needs a more robust string manipulation to handle user errors
+		* 	 work this in at start of each job perhaps by reworking jobInterval function
+		* */
+		console.log("updating state");
+		this.appState = {
+			...this.appState,
+			"scanSettings": {
+				"target": document.querySelector("input[name='radio-scan']:checked").value,
+				"autoFix": document.getElementById("jh-auto-fix").checked,
+				"autoDar": document.getElementById("jh-auto-dar").checked,
+				"excludedWorkOrders": [...document.getElementById('jh-excluded').value.split(' ')],
+			},
+			"fixSettings": {
+				"target": document.querySelector("input[name='radio-fix']:checked").value,
+				"unsavedNewTab": document.getElementById("jh-auto-dar").checked,
+			},
+			"darSettings": {
+				"target": document.querySelector("input[name='radio-fix']:checked").value
+			}
+
+		}
+		console.log(this.appState);
+	}
+
+	getRows(state, tab) {
+		//TODO rework to take target settings into account
+		// tabs: scan, fix, flags, dar
 		const allRows = Array.from(document.querySelectorAll(".data-grid-table-row"));
 		const selectedRows = allRows.filter(row => row.querySelector('.md-checked'));
-		const rows = selectedRows.length === 0 && isScan ? allRows : selectedRows;
 		const rowsEqual = allRows.length === selectedRows.length;
-		if(rows.length === 0) return;
-
-		//deselect multiple rows
 		const checkAll = document.querySelector('.data-grid-header md-checkbox');
+
+		let rows
+		switch(tab) {
+			case "scan" :
+				if(state.scanSettings.target === 'all') {
+					rows = allRows;
+				} else {
+					rows = selectedRows
+				}
+				break;
+
+			case "fix" :
+				// TODO: error encountered when the only/first fixable item is already selected
+				if(state.fixSettings.target === 'yellows') {
+					console.log(state.toBeFixedLog);
+					// console.log(state.fixSettings.target, state.toBeFixedLog, state.toBeFixedLog.reduce(data => data.row));
+					rows = [...state.toBeFixedLog].filter(data => !data.isMessageFlagged);
+					// rows = [];
+					console.log("sending these to the job Interval: ", rows);
+				} else {
+					rows = [];
+					//TODO: this needs a closer look as it likely doesn't work as intended
+					console.log("fixing selected is currently a work in progress");
+				}
+				break;
+
+			case "flags" :
+				rows = selectedRows;
+				break;
+
+			case "dar" :
+				if(state.darSettings.target === 'greens') {
+					rows = [...state.toBeDARedLog].filter(data => data.row);
+				} else {
+					rows = selectedRows;
+				}
+				break;
+
+		}
 		checkAll.click();
 		if (!rowsEqual) checkAll.click();
 
-		return rows;
+
+		if (rows.length !== 0) return rows;
+		return [];
+
+		// return rows;
+
+		// if(rowsFromLogArr.length > 0) return rowsFromLogArr.reduce(data => data.row);
+		// const allRows = Array.from(document.querySelectorAll(".data-grid-table-row"));
+		// const selectedRows = allRows.filter(row => row.querySelector('.md-checked'));
+		//
+		// const rows = selectedRows.length === 0 && isScan ? allRows : selectedRows;
+		// const rowsEqual = allRows.length === selectedRows.length;
+		// if(rows.length === 0) return;
+		//
+		// //deselect multiple rows
+		// const checkAll = document.querySelector('.data-grid-header md-checkbox');
+		// checkAll.click();
+		// if (!rowsEqual) checkAll.click();
+		//
+		// return rows;
+
+
 	}
 
 	cancel() {
+		clearTimeout(this.intervalID);
 		clearInterval(this.intervalID);
+		this.toggleBlastShield();
 	}
 
 	mathChecksOut(data) {
@@ -533,10 +629,10 @@
 			row.style.removeProperty('background-color');
 			row.style.removeProperty('color');
 		});
-		this.toBeFixedLog = [];
+		this.appState.toBeFixedLog = [];
 		this.toBeReviewedLog = [];
-		this.changeLog = [];
-		this.cancel();
+		this.appState.changeLog = [];
+		// this.cancel();
 		// this.mainElement.remove();
 	}
 
@@ -545,7 +641,7 @@
 		console.clear();
 		console.log('***** CHANGE LOG *****');
 		let csvString = 'Workorder,Errors\n';
-		this.changeLog.forEach(item => {
+		this.appState.changeLog.forEach(item => {
 
 			csvString +=`${item.workOrderNum},"${item.fixes.join(', ')}"\n`
 
@@ -555,7 +651,11 @@
 	}
 
 	toggleBlastShield() {
+		console.log('blast shield toggled', this.blastShieldRef);
 		this.appState.blastShield = !this.appState.blastShield
+		this.blastShieldRef.classList.toggle("active");
+		document.getElementById("jh-in-progress-content").classList.toggle("active")
+		document.querySelector(".jh-content .selected").classList.toggle("loading");
 	}
 
 	processArtDimensions(string) {

@@ -5,6 +5,7 @@ let appElement;
 console.log("init", initialized);
 /*
 	TODO:
+	 currently joinery is only able to be loaded once, unless the extension is updated
 	 remove stored data that is older than a week on startup
 	 Gather user's name from signed in profile and set as user for logged items
 	 manage state of icon based on (i'm assuming chrome "messages") and app state

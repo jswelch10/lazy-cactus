@@ -16,6 +16,10 @@
     align-items: stretch;
 }
 
+.jh-tabs.loading {
+    pointer-events:none;
+}
+
 #JoineryHelper, .jh-tabs {
     height: 160px
 }
@@ -39,6 +43,9 @@
 
 .jh-content .selected {
     display:flex;
+}
+.jh-content .selected.loading {
+    display:none;
 }
 .jh-target-line span {
     font-weight: bold;
@@ -70,6 +77,9 @@
     border-color: purple;
     transition: background-color .25s ease-in-out, color .25s ease-in-out;
 }
+#jh-cancelBtn {
+    align-self:flex-end;
+}
 
 .jh-tab-btn:hover, .jh-bigBtn:hover {
     color:purple;
@@ -88,9 +98,26 @@
 #jh-in-progress-content {
     justify-content: end;
 }
+#jh-in-progress-content.active {
+    display:flex;
+}
 .jh-throbber {
     margin:auto;
 }
 .jh-cancelBtn {
     align-self: end;
+}
+
+#jh-blast-shield {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255,255,255,0.8);
+    z-index: 1;
+}
+#jh-blast-shield.active {
+    display:block;
 }
