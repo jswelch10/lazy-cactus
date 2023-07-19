@@ -1,7 +1,6 @@
  class JoineryHelper {
-	constructor(debug) {
+	constructor() {
 		// this.appState.waitingForJoinery = false;
-		this.jobDebug = debug && true; //TODO: add setting to turn on job debug mode
 		this.updateAppState = false;
 		this.appState = {
 			"scanSettings": {
@@ -21,9 +20,10 @@
 				"target": "greens"
 			},
 			"changeLog": [],
-			"toBeFixedLog": [],
+			"toBeFixedLog": [], // [ {flagged: true, data...}, {flagged:false, data...} ... ]
 			"toBeDARedLog": [],
-			"waitingForJoinery": false
+			"waitingForJoinery": false,
+			"debugMode": false,
 		}
 
 
@@ -79,8 +79,6 @@
 
 	setupUI(){
 		/* TODO: List of items that need to be connected:
-		* 	 target
-		* 	 options
 		* 	 CancelBtn - will work for everything except scan
 		*  */
 		document.getElementById('jh-excluded').onmousedown = (e) => e.stopPropagation();
@@ -141,149 +139,11 @@
 
 	}
 
-	craftUI() {
-		/*
-		* TODO: this will be redone to hookup class components to html file, exposed buttons will have access to this class's functions
-		* */
-		const UserInterfaceID = "joineryHelper";
-		const buttonCSS =
-			'background-color:purple;' +
-			'color:white;' +
-			'border-radius:5px;' +
-			'padding:10px;';
-		const mainCSS =
-			'background-color:white;' +
-			'width:220px;' +
-			'height:150px;' +
-			'display:grid;' +
-			'grid-template-columns: 1fr 1fr;' +
-			'grid-template-rows: repeat(3, 1fr);' +
-			'position:absolute;' +
-			'z-index:10;' +
-			'border:solid gray;' +
-			'padding: 5px;'
-		const joinery = document.getElementById("joinery");
-
-		this.mainElement.setAttribute("id", UserInterfaceID);
-		this.mainElement.setAttribute("style", mainCSS);
-
-		const btnArr = [
-			['scan', this.scan],
-			['fix', this.fixMeasurements],
-			['star', this.addWorkOrderInstructionStars],
-			['DAR', this.completeDigitalArtReview],
-			['cancel', this.cancel],
-			['reset', this.reset],
-			['report', this.report]
-		];
-
-		btnArr.forEach( ([btnName, func]) => {
-			const btn = document.createElement("button");
-			btn.setAttribute("id", `${btnName}Btn`);
-			btn.setAttribute("type", "button");
-			btn.setAttribute("style", buttonCSS);
-			btn.onclick = func.bind(this);
-
-			const btnContent = document.createTextNode(btnName);
-			btn.appendChild(btnContent);
-			this.mainElement.appendChild(btn);
-		})
-
-		const txtInput = document.createElement("input");
-		txtInput.setAttribute('type','text');
-		txtInput.setAttribute('id','helperTxtInput');
-		txtInput.setAttribute('placeholder', 'Excluded W/O\'s');
-		txtInput.onmousedown = (e) => e.stopPropagation();
-		this.mainElement.appendChild(txtInput);
-
-		const saveBtn = document.createElement("button");
-		saveBtn.setAttribute("id", 'saveBtn');
-		saveBtn.setAttribute("type", "button");
-		saveBtn.setAttribute("style", buttonCSS);
-		saveBtn.onclick = this.readExcluded.bind(this);
-
-		const btnContent = document.createTextNode('save');
-		saveBtn.appendChild(btnContent);
-		this.mainElement.appendChild(saveBtn);
-
-		// const scanButton = document.createElement("button");
-		// scanButton.setAttribute("id", "scanBtn");
-		// scanButton.setAttribute("type", "button");
-		// scanButton.setAttribute("style", buttonCSS);
-		// scanButton.onclick = this.scan.bind(this);
-		//
-		// const scanBtnContent = document.createTextNode("Scan");
-		// scanButton.appendChild(scanBtnContent);
-		// this.mainElement.appendChild(scanButton);
-		//
-		// const fixButton = document.createElement("button");
-		// fixButton.setAttribute("id", "fixBtn");
-		// fixButton.setAttribute("type", "button");
-		// fixButton.setAttribute("style", buttonCSS);
-		// fixButton.onclick = this.fixMeasurements.bind(this);
-		//
-		// const fixBtnContent = document.createTextNode("Fix Selected");
-		// fixButton.appendChild(fixBtnContent);
-		// this.mainElement.appendChild(fixButton);
-		//
-		// ////////////////////////////////////////////////////////////
-		//
-		// const starButton = document.createElement("button");
-		// starButton.setAttribute("id", "starBtn");
-		// starButton.setAttribute("type", "button");
-		// starButton.setAttribute("style", buttonCSS);
-		// starButton.onclick = this.addWorkOrderInstructionStars.bind(this);
-		//
-		// const starBtnContent = document.createTextNode("*** Selected");
-		// starButton.appendChild(starBtnContent);
-		// this.mainElement.appendChild(starButton);
-		//
-		// const darButton = document.createElement("button");
-		// darButton.setAttribute("id", "darBtn");
-		// darButton.setAttribute("type", "button");
-		// darButton.setAttribute("style", buttonCSS);
-		// darButton.onclick = this.completeDigitalArtReview.bind(this);
-		//
-		// const darBtnContent = document.createTextNode("DAR Selected");
-		// darButton.appendChild(darBtnContent);
-		// this.mainElement.appendChild(darButton);
-		//
-		// const cancelButton = document.createElement("button");
-		// cancelButton.setAttribute("id", "cancelBtn");
-		// cancelButton.setAttribute("type", "button");
-		// cancelButton.setAttribute("style", buttonCSS);
-		// cancelButton.onclick = this.cancel.bind(this);
-		//
-		// const cancelBtnContent = document.createTextNode("Cancel Job");
-		// cancelButton.appendChild(cancelBtnContent);
-		// this.mainElement.appendChild(cancelButton);
-		//
-		// ////////////////////////////////////////////////////////////
-		//
-		// const resetButton = document.createElement("button");
-		// resetButton.setAttribute("id", "resetBtn");
-		// resetButton.setAttribute("type", "button");
-		// resetButton.setAttribute("style", buttonCSS);
-		// resetButton.onclick = this.reset.bind(this);
-		//
-		// const resetBtnContent = document.createTextNode("Reset");
-		// resetButton.appendChild(resetBtnContent);
-		// this.mainElement.appendChild(resetButton);
-
-
-		joinery.appendChild(this.mainElement);
-
-		this.makeUIDraggable(UserInterfaceID);
-	}
-
-
-	// readExcluded() {
-	// 	this.excludedWorkorders = [...document.getElementById('helperTxtInput').value.split(' ')];
-	//
-	// }
-
 	scan() {
-		// TODO: convert scan function to use a setInterval so that it may be canceled early
+		/*
+			TODO: convert scan function to use a setInterval so that it may be canceled early
+			 add checkbox settings
+		 */
 		this.toggleBlastShield();
 		if(this.updateAppState) this.updateState();
 		this.intervalID = setTimeout(() => {
@@ -300,15 +160,19 @@
 					workOrderNum: currWorkOrderNum,
 					fixes: []
 				}
+				row.dataset.workorderNum = currWorkOrderNum;
 
 				if(this.appState.scanSettings.excludedWorkOrders
 				&& this.appState.scanSettings.excludedWorkOrders.length > 0) {
 					const found = this.appState.scanSettings.excludedWorkOrders.find(WO => WO === currWorkOrderNum );
 					if (found) {
+						// TODO: location of this code is questionable, come back after chrome extension storage
 						changeLogData.fixes.push('proofing');
+						this.appState.changeLog.push(changeLogData);
 						return this.changeRowColor(row, 'skip');
 					}
 				}
+
 				const isMessageFlagged = !row.children[9].children[0].classList.contains("ng-hide");
 				if (isMessageFlagged) changeLogData.fixes.push('red flag');
 
@@ -321,7 +185,6 @@
 				const matOpeningWidth = parseFloat(this.widthInputRef.value);
 				const matOpeningHeight = parseFloat(this.heightInputRef.value);
 
-				if (!isDimensionFlagged && !isMessageFlagged) return this.changeRowColor(row, 'success');
 
 
 				const data = {
@@ -338,26 +201,31 @@
 					isMessageFlagged
 				}
 
+				if (!isDimensionFlagged && !isMessageFlagged) {
+					this.appState.toBeDARedLog.push(data);
+					return this.changeRowColor(row, 'success');
+				}
+
 				if(this.mathChecksOut(data)) {
 					if (isMessageFlagged) {
 						this.appState.changeLog.push(changeLogData);
-						return this.changeRowColor(row, 'flagged-no-change');
+						return this.changeRowColor(row, 'flagged-no-change'); 					//light pink
 					}
-					// if (isMessageFlagged) return this.changeRowColor(row, 'flagged');
-					return this.changeRowColor(row, 'no-change');
+						this.appState.toBeDARedLog.push(data);
+					return this.changeRowColor(row, 'no-change'); 								//green
 				} else {
-					// if (isMessageFlagged) return this.changeRowColor(row, 'flagged-need-change');
+
 					changeLogData.fixes.push('sizing');
 					this.appState.changeLog.push(changeLogData);
 
 					this.appState.toBeFixedLog.push(data);
-					if (isMessageFlagged) return this.changeRowColor(row, 'flagged-need-change');
+					if (isMessageFlagged) return this.changeRowColor(row, 'flagged-need-change'); //dark pink
 
-					return this.changeRowColor(row, 'need-change');
+					return this.changeRowColor(row, 'need-change');								// yellow
 				}
 			});
 
-			// rows[rows.length-1].click();
+			rows[rows.length-1].click();
 			this.toggleBlastShield();
 
 			//TODO: have scan send logs to the extension and storage
@@ -366,9 +234,9 @@
 
 	completeDigitalArtReview() {
 		//jobInterval functon needs an array of objects that posses a property "row" pointing to an html element
-		const arr = this.getRows(this.appState, 'dar').map(row => {
-			return {row}
-		});
+		if(this.updateAppState) this.updateState();
+		const arr = this.getRows(this.appState, 'dar');
+
 
 		this.workflowTab.click();
 
@@ -378,9 +246,7 @@
 	};
 
 	addWorkOrderInstructionStars() {
-		const arr = this.getRows(this.appState, "flags").map(row => {
-			return {row}
-		});
+		const arr = this.getRows(this.appState, "flags");
 
 		this.jobInterval(arr, (data) => {
 
@@ -390,7 +256,6 @@
 	}
 
 	jobInterval(dataArr, func){
-		const debugMode = this.jobDebug;
 		let counter = 0;
 		let setup = true;
 		let time = 0;
@@ -401,7 +266,7 @@
 		this.intervalID = setInterval(()=>{
 
 			let formReady = !this.saveButtonRef.hasAttribute('disabled');
-			if (debugMode) console.log('form ready: ', formReady);
+			if (this.appState.debugMode) console.log('form ready: ', formReady);
 			if(counter === dataArr.length){
 
 				clearInterval(this.intervalID);
@@ -411,20 +276,20 @@
 			} else {
 
 				if(setup) {
-					if (debugMode) console.log('starting setup');
+					if (this.appState.debugMode) console.log('starting setup');
+
 					data = dataArr[counter];
-					if (debugMode) console.log(data);
 					data.row.click();
 					setup = false;
-					if (debugMode) console.log('setup: ', data, setup);
+
+					if (this.appState.debugMode) console.log('setup: ', data, setup);
 
 				}
 				if(!this.appState.waitingForJoinery){
-					if (debugMode) console.log('joinery Open!');
+					if (this.appState.debugMode) console.log('joinery Open!');
 					func(data);
-					if (debugMode) console.log('provided function has run');
+					if (this.appState.debugMode) console.log('provided function has run');
 					this.appState.waitingForJoinery = true;
-					if (debugMode) console.log('joinery closed? ', this.appState.waitingForJoinery);
 
 				}
 				if(formReady) {
@@ -434,13 +299,14 @@
 						bufferCounter++;
 
 					} else {
-						if (debugMode) console.log('done saving');
+
 						setup = true;
-						if (debugMode) console.log('setup reset');
 						bufferCounter = 0;
 						counter++;
-						if (debugMode) console.log('new counter: ', counter);
+
 						this.appState.waitingForJoinery = false;
+
+						if (this.appState.debugMode) console.log('done saving');
 
 					}
 				}
@@ -452,11 +318,11 @@
 
 	fixMeasurements() {
 		this.fieldsTab.click();
-
+		if(this.updateAppState) this.updateState();
 		// const arr = this.appState.toBeFixedLog; //returns [ {data}, ... ]
 		const arr = this.getRows(this.appState, "fix"); // returns [ rowElement, ...]
 		if (arr.length === 0){
-			console.log("fix measurements arr length: ", arr);
+			console.log("no fixable items");
 			return
 		}
 
@@ -471,18 +337,18 @@
 	};
 
 	appStateChanged () {
-		console.log("state changed some more");
+		if (this.appState.debugMode) console.log("state changed some more");
 		if(!this.updateAppState) this.updateAppState = true;
 
 	}
 
 	updateState() {
 		/* TODO:
-		* 	 target updates to improve performance
+		* 	 alter single settings on change to reduce queries
 		*    excludedWorkOrders needs a more robust string manipulation to handle user errors
 		* 	 work this in at start of each job perhaps by reworking jobInterval function
 		* */
-		console.log("updating state");
+		if (this.appState.debugMode) console.log("updating state");
 		this.appState = {
 			...this.appState,
 			"scanSettings": {
@@ -497,10 +363,12 @@
 			},
 			"darSettings": {
 				"target": document.querySelector("input[name='radio-fix']:checked").value
-			}
-
+			},
+			"debugMode": document.querySelector("input[name='jh-debug']").value
 		}
-		console.log(this.appState);
+
+
+		if (this.appState.debugMode) console.log("app state after update: ", this.appState);
 	}
 
 	getRows(state, tab) {
@@ -522,29 +390,42 @@
 				break;
 
 			case "fix" :
-				// TODO: error encountered when the only/first fixable item is already selected
+				// TODO: error encountered when the only/first fixable item is already selected : this may not be an issue?
+				//   unlike "scan", "fix" and "dar" needs to return [{data}, ...] instead of [rowElement, ...]
 				if(state.fixSettings.target === 'yellows') {
-					console.log(state.toBeFixedLog);
+					if (this.appState.debugMode) console.log("to be fixed log: ", state.toBeFixedLog);
 					// console.log(state.fixSettings.target, state.toBeFixedLog, state.toBeFixedLog.reduce(data => data.row));
 					rows = [...state.toBeFixedLog].filter(data => !data.isMessageFlagged);
 					// rows = [];
-					console.log("sending these to the job Interval: ", rows);
+					if (this.appState.debugMode) console.log("sending these to the job Interval: ", rows);
 				} else {
-					rows = [];
-					//TODO: this needs a closer look as it likely doesn't work as intended
-					console.log("fixing selected is currently a work in progress");
+					if (this.appState.debugMode) console.log("fixing selected items");
+					let arr = [];
+
+					[...selectedRows].forEach(row =>
+						arr.push(state.toBeFixedLog.find(data => data.workOrderNum === row.dataset.workorderNum))
+					);
+					rows = arr.filter(item => item !== undefined);
+					if (this.appState.debugMode) console.log("selected items arr: ", rows);
+
 				}
 				break;
 
 			case "flags" :
-				rows = selectedRows;
+				rows = selectedRows.map(row => {
+					return {row}
+				});
 				break;
 
 			case "dar" :
 				if(state.darSettings.target === 'greens') {
-					rows = [...state.toBeDARedLog].filter(data => data.row);
+					rows = [...state.toBeDARedLog]
+					if (this.appState.debugMode) console.log("green items arr: ", rows);
 				} else {
-					rows = selectedRows;
+					rows = selectedRows.map(row => {
+						return {row};
+					});
+
 				}
 				break;
 
@@ -555,24 +436,6 @@
 
 		if (rows.length !== 0) return rows;
 		return [];
-
-		// return rows;
-
-		// if(rowsFromLogArr.length > 0) return rowsFromLogArr.reduce(data => data.row);
-		// const allRows = Array.from(document.querySelectorAll(".data-grid-table-row"));
-		// const selectedRows = allRows.filter(row => row.querySelector('.md-checked'));
-		//
-		// const rows = selectedRows.length === 0 && isScan ? allRows : selectedRows;
-		// const rowsEqual = allRows.length === selectedRows.length;
-		// if(rows.length === 0) return;
-		//
-		// //deselect multiple rows
-		// const checkAll = document.querySelector('.data-grid-header md-checkbox');
-		// checkAll.click();
-		// if (!rowsEqual) checkAll.click();
-		//
-		// return rows;
-
 
 	}
 
@@ -596,9 +459,9 @@
 
 	addStars() {
 		let string = this.workOrderInstructionsRef.value
-		console.log('WOI Value: ', string);
+		if (this.appState.debugMode) console.log('WOI Value: ', string);
 		if (string.slice(-3) === "***") return
-		console.log("doesn't have stars already");
+		if (this.appState.debugMode) console.log("doesn't have stars already");
 		this.workOrderInstructionsRef.dispatchEvent(new Event('focus'));
 		this.workOrderInstructionsRef.value = string +'***';
 		this.workOrderInstructionsRef.dispatchEvent(new Event('change'));
@@ -610,7 +473,7 @@
 	changeOpeningValues(width, height, modifier) {
 		width -= modifier;
 		height -= modifier;
-		console.log('change values to: ', width, height);
+		if (this.appState.debugMode) console.log('change values to: ', width, height);
 		this.widthInputRef.dispatchEvent(new Event('focus'));
 		this.widthInputRef.value = width;
 		this.widthInputRef.dispatchEvent(new Event('change'));
@@ -630,7 +493,7 @@
 			row.style.removeProperty('color');
 		});
 		this.appState.toBeFixedLog = [];
-		this.toBeReviewedLog = [];
+		this.appState.toBeDARedLog = [];
 		this.appState.changeLog = [];
 		// this.cancel();
 		// this.mainElement.remove();
@@ -651,7 +514,7 @@
 	}
 
 	toggleBlastShield() {
-		console.log('blast shield toggled', this.blastShieldRef);
+		if (this.appState.debugMode) console.log('blast shield toggled', this.blastShieldRef);
 		this.appState.blastShield = !this.appState.blastShield
 		this.blastShieldRef.classList.toggle("active");
 		document.getElementById("jh-in-progress-content").classList.toggle("active")
