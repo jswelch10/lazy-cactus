@@ -6,7 +6,12 @@ function getJoineryHelperInstance (){
 			document.body.insertAdjacentHTML("beforeend", html)
 		})
 		.then(() => {
-			return new JoineryHelper();
+			return chrome.runtime.id;
+		})
+		.then((e) => {
+			console.log(e);
+			// "eflomlhjhbnggmopdpccekfgjapdjdij"
+			return new JoineryHelper(e);
 		})
 }
 

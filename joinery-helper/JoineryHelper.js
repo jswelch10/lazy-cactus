@@ -1,7 +1,9 @@
  class JoineryHelper {
-	constructor() {
+	constructor(extId) {
 		// this.appState.waitingForJoinery = false;
 		this.updateAppState = false;
+		this.extId = extId; //needed to make injected js connectable to extension
+		this.port = chrome.runtime.connect(this.extId);
 		this.appState = {
 			"scanSettings": {
 				"target": "all",
@@ -20,7 +22,7 @@
 				"target": "greens"
 			},
 			"changeLog": [],
-			"toBeFixedLog": [], // [ {flagged: true, data...}, {flagged:false, data...} ... ]
+			"toBeFixedLog": [], // [ {flagged: true, data...}, {flagged:false, data...}, ... ]
 			"toBeDARedLog": [],
 			"waitingForJoinery": false,
 			"debugMode": false,
@@ -75,6 +77,22 @@
 		this.fieldsTab.click();
 		// this.measurementsTab.click();
 		setupRow.click();
+		/*	1. any tab can send scanned data error logs
+			2. get and combine new errors into master error log file
+			3. save new master error log
+			4.
+
+			1. report button sends request to local storage
+			2. takes response and turns it into csv
+			3. immediately downloads master csv
+
+		*/
+
+		// chrome.runtime.sendMessage(this.extId,{"test":"this is a test"}) // 1
+		// 	.then((res) => {	//4
+		// 		console.log("message received: ", res);
+		// 	})
+		// 	.then(e => {});
 	}
 
 	setupUI(){
@@ -226,6 +244,7 @@
 			});
 
 			rows[rows.length-1].click();
+			this.sendDataToStorage()
 			this.toggleBlastShield();
 
 			//TODO: have scan send logs to the extension and storage
@@ -445,6 +464,24 @@
 		this.toggleBlastShield();
 	}
 
+	async sendDataToStorage(){
+		let data = {}
+		this.appState.changeLog.forEach((item) => {
+			data[item.workOrderNum] = item.fixes.join(', ');
+		});
+		chrome.storage.local.get("joineryHelper").then((data) => {
+			data.entries.forEach(key => {
+				// iterate over keys and update string
+			})
+			if(Object.keys(data).length !== 0) {
+				console.log("data exists: ", data);
+			} else {
+				console.log("setting data");
+				chrome.storage.local.set({"joineryHelper": this.appState.changeLog})
+			}
+		});
+	}
+
 	mathChecksOut(data) {
 		if(!data.isDimensionFlagged) return true;
 
@@ -500,17 +537,17 @@
 	}
 
 	report() {
-		//TODO implement clipboard api for chrome extension
 		console.clear();
-		console.log('***** CHANGE LOG *****');
-		let csvString = 'Workorder,Errors\n';
-		this.appState.changeLog.forEach(item => {
-
-			csvString +=`${item.workOrderNum},"${item.fixes.join(', ')}"\n`
-
-		});
-		console.log(csvString);
-		console.log('***** CHANGE LOG END *****')
+		// console.log('***** CHANGE LOG *****');
+		// let csvString = 'Workorder,Errors\n';
+		// this.appState.changeLog.forEach(item => {
+		//
+		// 	csvString +=`${item.workOrderNum},"${item.fixes.join(', ')}"\n`
+		//
+		// });
+		// console.log(csvString);
+		// console.log('***** CHANGE LOG END *****')
+		chrome.storage.local.get("joineryHelper").then((e) => console.log(e));
 	}
 
 	toggleBlastShield() {

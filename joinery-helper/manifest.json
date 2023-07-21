@@ -18,12 +18,23 @@
     "service_worker": "background.js"
   },
 
+  "host_permissions": [
+    "https://framebridge.com/*"
+  ],
+
   "content_scripts": [
     {
       "matches": ["https://www.framebridge.com/*"],
       "css": ["styles.css"]
     }
   ],
+
+  "externally_connectable": {
+    "ids": [
+      "eflomlhjhbnggmopdpccekfgjapdjdij"
+    ],
+    "matches": ["https://www.framebridge.com/joinery##*", "https://www.framebridge.com/joinery/work_orders##*"]
+  },
 
   "web_accessible_resources": [
     {
@@ -33,7 +44,7 @@
   ],
 
   "permissions": [
-    "storage", "scripting", "activeTab"
+    "storage", "scripting", "activeTab", "declarativeContent", "tabs", "identity", "identity.email"
   ],
 
   "commands": {
