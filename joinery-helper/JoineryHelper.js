@@ -3,7 +3,7 @@
 		// this.appState.waitingForJoinery = false;
 		this.updateAppState = false;
 		this.extId = extId; //needed to make injected js connectable to extension
-		this.port = chrome.runtime.connect(this.extId);
+		// this.port = chrome.runtime.connect(this.extId);
 		this.appState = {
 			"scanSettings": {
 				"target": "all",
@@ -93,6 +93,10 @@
 		// 		console.log("message received: ", res);
 		// 	})
 		// 	.then(e => {});
+		chrome.storage.local.get("user").then(res => {
+			console.log(res);
+			this.user = res.user
+		});
 	}
 
 	setupUI(){
@@ -162,6 +166,7 @@
 			TODO: convert scan function to use a setInterval so that it may be canceled early
 			 add checkbox settings
 		 */
+		document.getElementById('jh-excluded').blur();
 		this.toggleBlastShield();
 		if(this.updateAppState) this.updateState();
 		this.intervalID = setTimeout(() => {
@@ -179,7 +184,7 @@
 					fixes: []
 				}
 				row.dataset.workorderNum = currWorkOrderNum;
-
+				let isSkip = false
 				if(this.appState.scanSettings.excludedWorkOrders
 				&& this.appState.scanSettings.excludedWorkOrders.length > 0) {
 					const found = this.appState.scanSettings.excludedWorkOrders.find(WO => WO === currWorkOrderNum );
@@ -187,7 +192,7 @@
 						// TODO: location of this code is questionable, come back after chrome extension storage
 						changeLogData.fixes.push('proofing');
 						this.appState.changeLog.push(changeLogData);
-						return this.changeRowColor(row, 'skip');
+						isSkip = true;
 					}
 				}
 
@@ -221,15 +226,18 @@
 
 				if (!isDimensionFlagged && !isMessageFlagged) {
 					this.appState.toBeDARedLog.push(data);
+					if (isSkip) return this.changeRowColor(row, 'skip');
 					return this.changeRowColor(row, 'success');
 				}
 
 				if(this.mathChecksOut(data)) {
 					if (isMessageFlagged) {
 						this.appState.changeLog.push(changeLogData);
+						if (isSkip) return this.changeRowColor(row, 'skip');
 						return this.changeRowColor(row, 'flagged-no-change'); 					//light pink
 					}
 						this.appState.toBeDARedLog.push(data);
+					if (isSkip) return this.changeRowColor(row, 'skip');
 					return this.changeRowColor(row, 'no-change'); 								//green
 				} else {
 
@@ -238,7 +246,7 @@
 
 					this.appState.toBeFixedLog.push(data);
 					if (isMessageFlagged) return this.changeRowColor(row, 'flagged-need-change'); //dark pink
-
+					if (isSkip) return this.changeRowColor(row, 'skip');
 					return this.changeRowColor(row, 'need-change');								// yellow
 				}
 			});
@@ -466,20 +474,34 @@
 
 	async sendDataToStorage(){
 		let data = {}
+		let updatedData = {}
 		this.appState.changeLog.forEach((item) => {
-			data[item.workOrderNum] = item.fixes.join(', ');
+			data[item.workOrderNum] = item.fixes;
 		});
-		chrome.storage.local.get("joineryHelper").then((data) => {
-			data.entries.forEach(key => {
-				// iterate over keys and update string
+		console.log("data arr: ", data);
+		chrome.storage.local.get("joineryHelper")
+			.then((res) => {
+
+				console.log("response from local storage: ", res);
+
+				if(Object.keys(data).length !== 0) Object.keys(data).forEach(key => {
+					if(!Object.keys(res.joineryHelper).length > 0 // if storage is not empty
+						&& res.joineryHelper.hasOwnProperty(key)) { // and if we have the key stored : merge the items
+							console.log("merging data: ", key);
+							updatedData[key] = [...new Set([...res.joineryHelper[key], ...data[key]])];
+
+					} else {
+
+						updatedData[key] = data[key];
+
+					}
+				});
+				console.log("updated data: ", {...res.joineryHelper, ...updatedData});
+				chrome.storage.local.set({"joineryHelper": {...res.joineryHelper, ...updatedData}})
+					.catch(e => console.log("failed to set storage: ", e))
+					.finally(() => this.appState.changeLog = []);
 			})
-			if(Object.keys(data).length !== 0) {
-				console.log("data exists: ", data);
-			} else {
-				console.log("setting data");
-				chrome.storage.local.set({"joineryHelper": this.appState.changeLog})
-			}
-		});
+			.catch(e => console.log("failed to get storage: ", e));
 	}
 
 	mathChecksOut(data) {
@@ -523,7 +545,7 @@
 		this.saveButtonRef.click();
 	}
 
-	reset() {
+	async reset() {
 		const tableGridRows = document.querySelectorAll(".data-grid-table-row");
 		tableGridRows.forEach(row =>{
 			row.style.removeProperty('background-color');
@@ -532,22 +554,38 @@
 		this.appState.toBeFixedLog = [];
 		this.appState.toBeDARedLog = [];
 		this.appState.changeLog = [];
+		chrome.storage.local.set({"joineryHelper": {}}).then(e => console.log("reset storage"));
 		// this.cancel();
 		// this.mainElement.remove();
 	}
 
-	report() {
+	async report() {
 		console.clear();
-		// console.log('***** CHANGE LOG *****');
-		// let csvString = 'Workorder,Errors\n';
-		// this.appState.changeLog.forEach(item => {
-		//
-		// 	csvString +=`${item.workOrderNum},"${item.fixes.join(', ')}"\n`
-		//
-		// });
-		// console.log(csvString);
-		// console.log('***** CHANGE LOG END *****')
-		chrome.storage.local.get("joineryHelper").then((e) => console.log(e));
+		const name = this.user.substring(0, this.user.indexOf("."));
+		console.log('***** CHANGE LOG *****');
+		chrome.storage.local.get("joineryHelper").then((res) => {
+			let csvString = 'Workorder,Errors,User\n';
+			Object.keys(res.joineryHelper).forEach(key => {
+
+				csvString +=`${key},"${res.joineryHelper[key].join(', ')}",${name}\n`
+
+			});
+			console.log(csvString);
+		}).catch(e => console.log("no changes to report"))
+			.finally(()=> console.log('***** CHANGE LOG END *****'));
+
+		/*
+		const blob = new Blob([data], {type: "text/csv"});
+		const url = window.URL.createObjectURL(blob);
+		const a = document.createElement("a");
+		a.setAttribute("href", url);
+		a.setAttribute("download", "error-log.csv);
+		a.click();
+		a.remove();
+		 */
+
+
+
 	}
 
 	toggleBlastShield() {

@@ -22,7 +22,7 @@ async function badgeSettings(text, color, tabId) {
 }
 chrome.action.disable();
 
-chrome.runtime.onStartup.addListener(() => { // only triggers when chrome starts fresh
+chrome.runtime.onInstalled.addListener(() => { // only triggers when chrome starts fresh
 	console.log('on first start');
 	// this stores the current user email in storage under "user"
 	chrome.identity.getProfileUserInfo({accountStatus: 'ANY'})
@@ -30,7 +30,7 @@ chrome.runtime.onStartup.addListener(() => { // only triggers when chrome starts
 			console.log(userInfo); // returns {email:xyz, id:abc}
 			chrome.storage.local.set({"user": userInfo.email});
 		});
-
+	chrome.storage.local.set({"joineryHelper": {}});
 	//add listener to chrome.storage.onChanged to potentially update changeLog master list
 });
 /*
@@ -82,17 +82,17 @@ chrome.action.onClicked.addListener((tab) => {
 	// }
 
 });
-chrome.runtime.onMessage.addListener(
-	(message, sender, res)  => { //2
-	console.log("onMessage: ", message, "from: ", sender);
-	res("loud and clear"); //3
-});
-
-
-chrome.runtime.onMessageExternal.addListener((request, sender, sendResponse)=>{
-	console.log("Received message from "+ sender +": ", request);
-	sendResponse({received: true});
-})
+// chrome.runtime.onMessage.addListener(
+// 	(message, sender, res)  => { //2
+// 	console.log("onMessage: ", message, "from: ", sender);
+// 	res("loud and clear"); //3
+// });
+//
+//
+// chrome.runtime.onMessageExternal.addListener((request, sender, sendResponse)=>{
+// 	console.log("Received message from "+ sender +": ", request);
+// 	sendResponse({received: true});
+// })
 /*
 	* if app is running set banner to BUSY
 	* if app is doing nothing, banner to ON
