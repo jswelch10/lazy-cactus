@@ -1,9 +1,7 @@
  class JoineryHelper {
 	constructor(extId) {
-		// this.appState.waitingForJoinery = false;
 		this.updateAppState = false;
 		this.extId = extId; //needed to make injected js connectable to extension
-		// this.port = chrome.runtime.connect(this.extId);
 		this.appState = {
 			"scanSettings": {
 				"target": "all",
@@ -40,71 +38,27 @@
 		this.init();
 	}
 	init() {
-
-		// this.craftUI();
 		this.setupUI();
 
-		this.blastShieldRef = document.getElementById("jh-blast-shield");
-
-		this.measurementsTab = document.querySelector('[aria-label="Measurements"]');
-		this.fieldsTab = document.querySelector('[aria-label="Work Order Fields"]');
-		this.workflowTab = document.querySelector('[aria-label="Workflow"]');
-
-		this.widthInputRef = document.getElementById('input_44');
-		this.heightInputRef = document.getElementById('input_45');
-		this.matOpeningRef = document.querySelector('#tab-content-8 .production-info:first-child tr:nth-last-child(2) b');
-		this.workOrderInstructionsRef = document.getElementById('input_39');
-		this.saveButtonRef = document.querySelector('.work-order-form-save-popup > button');
-
-		this.mountingTypeRef = document.getElementById('select_42');
-		// this.matStyleRef = document.querySelectorAll(".production-info")[2].children[0].children[0].children[1].children[0];
-		this.matStyleRef = document.getElementById('select_6649');
-
-
-		this.workOrderNumRef = document.querySelector("#tab-content-5 .production-info tr:nth-child(3) td:last-child");
-		this.artDimensionsRef = document.querySelector(".artwork-info > div:last-of-type");
-
-
-		this.workflowTab.click();
-		this.digitalArtReviewRef = document.querySelector('md-checkbox[aria-label="Digital Art Review"]');
-
-
-
-		const setupRow = document.querySelector(".data-grid-table-row");
-		//
-		// // this code is needed to initialize the sidebar for a proper scan
-		setupRow.click();
-		this.fieldsTab.click();
-		// this.measurementsTab.click();
-		setupRow.click();
-		/*	1. any tab can send scanned data error logs
-			2. get and combine new errors into master error log file
-			3. save new master error log
-			4.
-
-			1. report button sends request to local storage
-			2. takes response and turns it into csv
-			3. immediately downloads master csv
-
-		*/
-
-		// chrome.runtime.sendMessage(this.extId,{"test":"this is a test"}) // 1
-		// 	.then((res) => {	//4
-		// 		console.log("message received: ", res);
-		// 	})
-		// 	.then(e => {});
 		chrome.storage.local.get("user").then(res => {
-			console.log(res);
 			this.user = res.user
 		});
+
+		this.getPageRefs();
+
+		const setupRow = document.querySelector(".data-grid-table-row");
+
+		//this code is needed to initialize the sidebar for a proper scan
+		setupRow.click();
+		this.fieldsTab.click();
+		setupRow.click();
 	}
 
 	setupUI(){
-		/* TODO: List of items that need to be connected:
-		* 	 CancelBtn - will work for everything except scan
-		*  */
+		//stops text input and drag feature from fighting
 		document.getElementById('jh-excluded').onmousedown = (e) => e.stopPropagation();
 
+		//catch when settings are changed so we don't read before every action
 		const func = this.appStateChanged
 		Array.from(document.querySelectorAll("#JoineryHelper input")).forEach( item => {
 			item.onchange = func.bind(this);
@@ -115,6 +69,7 @@
 		this.makeUIDraggable();
 	}
 	syncUI() {
+		//below code syncs up tabs with their content
 		const names = [
 			"scan",
 			"fix",
@@ -143,10 +98,12 @@
 			})
 		});
 
+		//connects buttons to class functions
+
 		const btnArr = [
 			['scan', this.scan],
 			['fix', this.fixMeasurements],
-			['star', this.addWorkOrderInstructionStars],
+			['star', this.flagHandler],
 			['dar', this.completeDigitalArtReview],
 			['cancel', this.cancel],
 			['reset', this.reset],
@@ -162,34 +119,29 @@
 	}
 
 	scan() {
-		/*
-			TODO: convert scan function to use a setInterval so that it may be canceled early
-			 add checkbox settings
-		 */
 		document.getElementById('jh-excluded').blur();
 		this.toggleBlastShield();
+
 		if(this.updateAppState) this.updateState();
+		// done as an interval to ensure blast shield and state changes are handled first
 		this.intervalID = setTimeout(() => {
-		// setup rows based on selectedItems || allItems;
 			const rows = this.getRows(this.appState, 'scan');
 			const max = rows.length;
 			rows.forEach( (row, index, array) => {
-				console.log(`item ${index+1}/${max}`);
+				if (this.appState.debugMode) console.log(`item ${index+1}/${max}`);
 				row.click();
-				// this.measurementsTab.click();
 
-				const currWorkOrderNum = this.workOrderNumRef.innerHTML;
+				const workOrderNum = this.workOrderNumRef.innerHTML;
 				const changeLogData = {
-					workOrderNum: currWorkOrderNum,
+					workOrderNum,
 					fixes: []
 				}
-				row.dataset.workorderNum = currWorkOrderNum;
+				row.dataset.workorderNum = workOrderNum;
 				let isSkip = false
 				if(this.appState.scanSettings.excludedWorkOrders
 				&& this.appState.scanSettings.excludedWorkOrders.length > 0) {
-					const found = this.appState.scanSettings.excludedWorkOrders.find(WO => WO === currWorkOrderNum );
+					const found = this.appState.scanSettings.excludedWorkOrders.find(WO => WO === workOrderNum );
 					if (found) {
-						// TODO: location of this code is questionable, come back after chrome extension storage
 						changeLogData.fixes.push('proofing');
 						this.appState.changeLog.push(changeLogData);
 						isSkip = true;
@@ -209,9 +161,8 @@
 				const matOpeningHeight = parseFloat(this.heightInputRef.value);
 
 
-
 				const data = {
-					"workOrderNum": currWorkOrderNum,
+					workOrderNum,
 					row,
 					"measurements": {
 						artWidth,
@@ -252,15 +203,35 @@
 			});
 
 			rows[rows.length-1].click();
-			this.sendDataToStorage()
+			this.sendDataToStorage().catch(e => {
+				if (this.appState.debugMode) console.log(e);
+					alert("unable to set data in local storage")
+				}
+			);
 			this.toggleBlastShield();
-
-			//TODO: have scan send logs to the extension and storage
 		}, 500);
 	}
 
+	getPageRefs() {
+		this.blastShieldRef = document.getElementById("jh-blast-shield");
+
+		this.fieldsTab = document.querySelector('[aria-label="Work Order Fields"]');
+		this.workflowTab = document.querySelector('[aria-label="Workflow"]');
+
+		this.widthInputRef = document.getElementById('input_44');
+		this.heightInputRef = document.getElementById('input_45');
+		this.workOrderInstructionsRef = document.getElementById('input_39');
+		this.saveButtonRef = document.querySelector('.work-order-form-save-popup > button');
+
+		this.workOrderNumRef = document.querySelector("#tab-content-5 .production-info tr:nth-child(3) td:last-child");
+		this.artDimensionsRef = document.querySelector(".artwork-info > div:last-of-type");
+
+
+		this.workflowTab.click();
+	}
+
 	completeDigitalArtReview() {
-		//jobInterval functon needs an array of objects that posses a property "row" pointing to an html element
+
 		if(this.updateAppState) this.updateState();
 		const arr = this.getRows(this.appState, 'dar');
 
@@ -272,10 +243,10 @@
 		});
 	};
 
-	addWorkOrderInstructionStars() {
+	flagHandler() {
 		const arr = this.getRows(this.appState, "flags");
 
-		this.jobInterval(arr, (data) => {
+		this.jobInterval(arr, () => {
 
 			this.addStars();
 
@@ -298,7 +269,7 @@
 
 				clearInterval(this.intervalID);
 				this.toggleBlastShield();
-				console.log('job done: interval cleared');
+				if (this.appState.debugMode) console.log('job done: interval cleared');
 
 			} else {
 
@@ -337,7 +308,7 @@
 
 					}
 				}
-				console.log(`${time} seconds have passed...`);
+				if (this.appState.debugMode) console.log(`${time} seconds have passed...`);
 				time++;
 			}
 		},1000);
@@ -349,7 +320,7 @@
 		// const arr = this.appState.toBeFixedLog; //returns [ {data}, ... ]
 		const arr = this.getRows(this.appState, "fix"); // returns [ rowElement, ...]
 		if (arr.length === 0){
-			console.log("no fixable items");
+			if (this.appState.debugMode) console.log("no fixable items");
 			return
 		}
 
@@ -409,6 +380,7 @@
 		let rows
 		switch(tab) {
 			case "scan" :
+				// sets rows to [rowElement, ...]
 				if(state.scanSettings.target === 'all') {
 					rows = allRows;
 				} else {
@@ -417,14 +389,15 @@
 				break;
 
 			case "fix" :
-				// TODO: error encountered when the only/first fixable item is already selected : this may not be an issue?
-				//   unlike "scan", "fix" and "dar" needs to return [{data}, ...] instead of [rowElement, ...]
+				// sets rows to [{data}, ...]
 				if(state.fixSettings.target === 'yellows') {
+
 					if (this.appState.debugMode) console.log("to be fixed log: ", state.toBeFixedLog);
-					// console.log(state.fixSettings.target, state.toBeFixedLog, state.toBeFixedLog.reduce(data => data.row));
+
 					rows = [...state.toBeFixedLog].filter(data => !data.isMessageFlagged);
-					// rows = [];
+
 					if (this.appState.debugMode) console.log("sending these to the job Interval: ", rows);
+
 				} else {
 					if (this.appState.debugMode) console.log("fixing selected items");
 					let arr = [];
@@ -445,6 +418,7 @@
 				break;
 
 			case "dar" :
+				// sets rows to [{data}, ...] or [{row}, ...]
 				if(state.darSettings.target === 'greens') {
 					rows = [...state.toBeDARedLog]
 					if (this.appState.debugMode) console.log("green items arr: ", rows);
@@ -478,16 +452,16 @@
 		this.appState.changeLog.forEach((item) => {
 			data[item.workOrderNum] = item.fixes;
 		});
-		console.log("data arr: ", data);
+		if (this.appState.debugMode) console.log("data arr: ", data);
 		chrome.storage.local.get("joineryHelper")
 			.then((res) => {
 
-				console.log("response from local storage: ", res);
+				if (this.appState.debugMode) console.log("response from local storage: ", res);
 
 				if(Object.keys(data).length !== 0) Object.keys(data).forEach(key => {
 					if(!Object.keys(res.joineryHelper).length > 0 // if storage is not empty
 						&& res.joineryHelper.hasOwnProperty(key)) { // and if we have the key stored : merge the items
-							console.log("merging data: ", key);
+						if (this.appState.debugMode) console.log("merging data: ", key);
 							updatedData[key] = [...new Set([...res.joineryHelper[key], ...data[key]])];
 
 					} else {
@@ -496,24 +470,14 @@
 
 					}
 				});
-				console.log("updated data: ", {...res.joineryHelper, ...updatedData});
+				if (this.appState.debugMode) console.log("updated data: ", {...res.joineryHelper, ...updatedData});
 				chrome.storage.local.set({"joineryHelper": {...res.joineryHelper, ...updatedData}})
 					.catch(e => console.log("failed to set storage: ", e))
 					.finally(() => this.appState.changeLog = []);
 			})
-			.catch(e => console.log("failed to get storage: ", e));
-	}
-
-	mathChecksOut(data) {
-		if(!data.isDimensionFlagged) return true;
-
-		const {measurements} = data;
-
-		if(data.isNoMatOrFloat) {
-			return (measurements.artWidth === measurements.matOpeningWidth && measurements.artHeight === measurements.matOpeningHeight);
-		} else {
-			return (measurements.artWidth - .25) === measurements.matOpeningWidth && (measurements.artHeight - .25) === measurements.matOpeningHeight;
-		}
+			.catch(e => {
+				if (this.appState.debugMode) console.log("failed to get storage: ", e)
+			});
 	}
 
 	addStars() {
@@ -554,12 +518,22 @@
 		this.appState.toBeFixedLog = [];
 		this.appState.toBeDARedLog = [];
 		this.appState.changeLog = [];
-		chrome.storage.local.set({"joineryHelper": {}}).then(e => console.log("reset storage"));
-		// this.cancel();
-		// this.mainElement.remove();
+		chrome.storage.local.set({"joineryHelper": {}}).then(e => {
+			if (this.appState.debugMode) console.log("reset storage")
+		});
 	}
 
 	async report() {
+		/*	1. any tab can send scanned data error logs
+			2. get and combine new errors into master error log file
+			3. save new master error log
+			4.
+
+			1. report button sends request to local storage
+			2. takes response and turns it into csv
+			3. immediately downloads master csv
+
+		*/
 		console.clear();
 		const name = this.user.substring(0, this.user.indexOf("."));
 		console.log('***** CHANGE LOG *****');
@@ -595,6 +569,31 @@
 		document.getElementById("jh-in-progress-content").classList.toggle("active")
 		document.querySelector(".jh-content .selected").classList.toggle("loading");
 	}
+	 changeRowColor(rowEl, setting) {
+		 switch(setting) {
+			 case 'no-change':
+			 case 'success':
+				 rowEl.style.backgroundColor = 'lime';
+				 break;
+			 case 'need-change':
+				 rowEl.style.backgroundColor = 'yellow';
+				 break;
+			 case 'flagged':
+				 rowEl.style.backgroundColor = 'orange';
+				 break;
+			 case 'flagged-no-change':
+				 rowEl.style.backgroundColor = 'lightpink';
+				 break;
+			 case 'flagged-need-change':
+				 rowEl.style.backgroundColor = 'lightcoral';
+				 break;
+			 case 'skip':
+			 case 'error':
+			 default:
+				 rowEl.style.backgroundColor = 'black';
+				 rowEl.style.color = 'white';
+		 }
+	 }
 
 	processArtDimensions(string) {
 		string = string.replaceAll(/[wh'" ]/g, '')
@@ -602,38 +601,26 @@
 		return [this.roundEighthFloor(parseFloat(dimensions[0])), this.roundEighthFloor(parseFloat(dimensions[1]))];
 	}
 
-	changeRowColor(rowEl, setting) {
-		switch(setting) {
-			case 'no-change':
-			case 'success':
-				rowEl.style.backgroundColor = 'lime';
-				break;
-			case 'need-change':
-				rowEl.style.backgroundColor = 'yellow';
-				break;
-			case 'flagged':
-				rowEl.style.backgroundColor = 'orange';
-				break;
-			case 'flagged-no-change':
-				rowEl.style.backgroundColor = 'lightpink';
-				break;
-			case 'flagged-need-change':
-				rowEl.style.backgroundColor = 'lightcoral';
-				break;
-			case 'skip':
-			case 'error':
-			default:
-				rowEl.style.backgroundColor = 'black';
-				rowEl.style.color = 'white';
-		}
-	}
+
+	 mathChecksOut(data) {
+		 if(!data.isDimensionFlagged) return true;
+
+		 const {measurements} = data;
+
+		 if(data.isNoMatOrFloat) {
+			 return (measurements.artWidth === measurements.matOpeningWidth && measurements.artHeight === measurements.matOpeningHeight);
+		 } else {
+			 return (measurements.artWidth - .25) === measurements.matOpeningWidth && (measurements.artHeight - .25) === measurements.matOpeningHeight;
+		 }
+	 }
 
 	roundEighthFloor (value) {
+		if (value < 0) return 0
 		let current = 0
 		while (current <= value){
 			current += .125
 		}
-		return current === 0 ? 0: (current - .125);
+		return current - .125;
 	}
 
 	makeUIDraggable() {
@@ -642,13 +629,7 @@
 
 		function dragElement(elmnt) {
 			let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-			// if (document.getElementById(elmnt.id + "header")) {
-				// if present, the header is where you move the DIV from:
-				// document.getElementById(elmnt.id + "header").onmousedown = dragMouseDown;
-			// } else {
-				// otherwise, move the DIV from anywhere inside the DIV:
-				elmnt.onmousedown = dragMouseDown;
-			// }
+			elmnt.onmousedown = dragMouseDown;
 
 			function dragMouseDown(e) {
 				e = e || window.event;
@@ -682,6 +663,5 @@
 		}
 	}
 }
-console.log("JoineryHelper Loaded");
 
 
