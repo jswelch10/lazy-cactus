@@ -107,7 +107,8 @@
 			['dar', this.completeDigitalArtReview],
 			['cancel', this.cancel],
 			['reset', this.reset],
-			['report', this.report]
+			['report', this.report],
+			['clear', this.clearStorage]
 		];
 
 		btnArr.forEach( ([btnName, func]) => {
@@ -129,6 +130,7 @@
 			const max = rows.length;
 			rows.forEach( (row, index, array) => {
 				if (this.appState.debugMode) console.log(`item ${index+1}/${max}`);
+
 				row.click();
 
 				const workOrderNum = this.workOrderNumRef.innerHTML;
@@ -254,6 +256,7 @@
 	}
 
 	jobInterval(dataArr, func){
+
 		let counter = 0;
 		let setup = true;
 		let time = 0;
@@ -277,6 +280,7 @@
 					if (this.appState.debugMode) console.log('starting setup');
 
 					data = dataArr[counter];
+					data.row.scrollIntoView({block:"center",behavior:"smooth"});
 					data.row.click();
 					setup = false;
 
@@ -323,7 +327,6 @@
 			if (this.appState.debugMode) console.log("no fixable items");
 			return
 		}
-
 		//needs [{data}, ...], not [rowElement]
 
 		this.jobInterval(arr, (data) => {
@@ -446,40 +449,6 @@
 		this.toggleBlastShield();
 	}
 
-	async sendDataToStorage(){
-		let data = {}
-		let updatedData = {}
-		this.appState.changeLog.forEach((item) => {
-			data[item.workOrderNum] = item.fixes;
-		});
-		if (this.appState.debugMode) console.log("data arr: ", data);
-		chrome.storage.local.get("joineryHelper")
-			.then((res) => {
-
-				if (this.appState.debugMode) console.log("response from local storage: ", res);
-
-				if(Object.keys(data).length !== 0) Object.keys(data).forEach(key => {
-					if(!Object.keys(res.joineryHelper).length > 0 // if storage is not empty
-						&& res.joineryHelper.hasOwnProperty(key)) { // and if we have the key stored : merge the items
-						if (this.appState.debugMode) console.log("merging data: ", key);
-							updatedData[key] = [...new Set([...res.joineryHelper[key], ...data[key]])];
-
-					} else {
-
-						updatedData[key] = data[key];
-
-					}
-				});
-				if (this.appState.debugMode) console.log("updated data: ", {...res.joineryHelper, ...updatedData});
-				chrome.storage.local.set({"joineryHelper": {...res.joineryHelper, ...updatedData}})
-					.catch(e => console.log("failed to set storage: ", e))
-					.finally(() => this.appState.changeLog = []);
-			})
-			.catch(e => {
-				if (this.appState.debugMode) console.log("failed to get storage: ", e)
-			});
-	}
-
 	addStars() {
 		let string = this.workOrderInstructionsRef.value
 		if (this.appState.debugMode) console.log('WOI Value: ', string);
@@ -518,9 +487,7 @@
 		this.appState.toBeFixedLog = [];
 		this.appState.toBeDARedLog = [];
 		this.appState.changeLog = [];
-		chrome.storage.local.set({"joineryHelper": {}}).then(e => {
-			if (this.appState.debugMode) console.log("reset storage")
-		});
+
 	}
 
 	async report() {
@@ -536,30 +503,78 @@
 		*/
 		console.clear();
 		const name = this.user.substring(0, this.user.indexOf("."));
+		const date = new Date().toLocaleString('en-us',{hour12:false}).replace(",","");
+		let csvString = 'Date,Workorder,Who,Level,Errors\n';
+
 		console.log('***** CHANGE LOG *****');
+
 		chrome.storage.local.get("joineryHelper").then((res) => {
-			let csvString = 'Workorder,Errors,User\n';
+
 			Object.keys(res.joineryHelper).forEach(key => {
 
-				csvString +=`${key},"${res.joineryHelper[key].join(', ')}",${name}\n`
+				csvString +=`${date},${key},${name},,"${res.joineryHelper[key].join(', ')}"\n`
 
 			});
 			console.log(csvString);
 		}).catch(e => console.log("no changes to report"))
-			.finally(()=> console.log('***** CHANGE LOG END *****'));
+			.finally(()=> {
+				console.log('***** CHANGE LOG END *****');
+				const blob = new Blob([csvString], {type: "text/csv"});
+				const url = window.URL.createObjectURL(blob);
+				const a = document.createElement("a");
+				a.setAttribute("href", url);
+				a.setAttribute("download", "change-log.csv");
+				a.click();
+				a.remove();
+			}
+			);
 
-		/*
-		const blob = new Blob([data], {type: "text/csv"});
-		const url = window.URL.createObjectURL(blob);
-		const a = document.createElement("a");
-		a.setAttribute("href", url);
-		a.setAttribute("download", "error-log.csv);
-		a.click();
-		a.remove();
-		 */
 
 
 
+
+
+	}
+
+	async sendDataToStorage(){
+		 let data = {}
+		 let updatedData = {}
+		 this.appState.changeLog.forEach((item) => {
+			 data[item.workOrderNum] = item.fixes;
+		 });
+		 if (this.appState.debugMode) console.log("data arr: ", data);
+		 chrome.storage.local.get("joineryHelper")
+			 .then((res) => {
+
+				 if (this.appState.debugMode) console.log("response from local storage: ", res);
+
+				 if(Object.keys(data).length !== 0) Object.keys(data).forEach(key => {
+					 if(!Object.keys(res.joineryHelper).length > 0 // if storage is not empty
+						 && res.joineryHelper.hasOwnProperty(key)) { // and if we have the key stored : merge the items
+						 if (this.appState.debugMode) console.log("merging data: ", key);
+						 updatedData[key] = [...new Set([...res.joineryHelper[key], ...data[key]])];
+
+					 } else {
+
+						 updatedData[key] = data[key];
+
+					 }
+				 });
+				 if (this.appState.debugMode) console.log("updated data: ", {...res.joineryHelper, ...updatedData});
+				 chrome.storage.local.set({"joineryHelper": {...res.joineryHelper, ...updatedData}})
+					 .catch(e => console.log("failed to set storage: ", e))
+					 .finally(() => this.appState.changeLog = []);
+			 })
+			 .catch(e => {
+				 if (this.appState.debugMode) console.log("failed to get storage: ", e)
+			 });
+	 }
+
+	async clearStorage(){
+		if (!confirm("This action will clear your current JoineryHelper report data")) return;
+		chrome.storage.local.set({"joineryHelper": {}}).then(e => {
+			if (this.appState.debugMode) console.log("reset storage")
+		});
 	}
 
 	toggleBlastShield() {
@@ -569,6 +584,7 @@
 		document.getElementById("jh-in-progress-content").classList.toggle("active")
 		document.querySelector(".jh-content .selected").classList.toggle("loading");
 	}
+
 	 changeRowColor(rowEl, setting) {
 		 switch(setting) {
 			 case 'no-change':
@@ -600,7 +616,6 @@
 		const dimensions = string.split('x');
 		return [this.roundEighthFloor(parseFloat(dimensions[0])), this.roundEighthFloor(parseFloat(dimensions[1]))];
 	}
-
 
 	 mathChecksOut(data) {
 		 if(!data.isDimensionFlagged) return true;
