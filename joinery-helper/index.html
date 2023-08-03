@@ -1,99 +1,74 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Joinery Helper</title>
-    <meta charset="utf-8">
-</head>
-<body>
-	<!-- this is a page for a potential plugin, and storage for the general layout of the app to make the js creation more legible-->
-	<div id="JoineryHelper">
-		<div class="jh-tabs">
-			<button class="jh-tab-btn" onclick="">Scan</button>
-			<button class="jh-tab-btn" onclick="">Fix</button>
-			<button class="jh-tab-btn" onclick="">DAR</button>
-			<button class="jh-tab-btn" onclick="">flags</button>
-			<button class="jh-tab-btn" onclick="">report</button>
-			<button class="jh-tab-btn" onclick="">settings</button>
-		</div>
-		<div class="jh-tab-content">
-			<div class="jh-scan">
-				<div class="jh-scan-line">
-					<input type="radio" id="js-scan-all" name="radio-scan" value="all" checked>
-					<label for="js-scan-all">All</label>
-					<input type="radio" id="js-scan-selected" name="radio-scan" value="selected">
-					<label for="js-scan-selected">Selected</label>
-					<input type="checkbox" id="js-auto-fix" name="auto-fix" value="auto-fix">
-					<label for="js-auto-fix">auto fix yellow items after scan</label>
-					<button class="jh-scanBtn" onclick="">Scan</button>
-				</div>
-				<div class="jh-excluded">
-					<input type="text" id="jh-excluded" name="jh-excluded" placeholder="Excluded W/O's">
-					<button class="jh-saveBtn" onclick="">Save</button>
-					<input type="checkbox" id="js-auto-dar" name="auto-dar" value="auto-dar">
-					<label for="js-auto-fix">auto DAR green items after scan </label>
-				</div>
-			</div>
-			<div class="jh-fix">
-				<div class="jh-fix-line">
-					<input type="checkbox" id="js-fix-new-tab" name="fix-new-tab" value="new-tab">
-					<label for="js-fix-new-tab">Open unsaved in new tab</label>
-					<button class="jh-fixBtn" onclick="">Fix</button>
-				</div>
-			</div>
-			<div class="jh-dar">
-				<button class="jh-darBtn" onclick="">Fix</button>
-			</div>
-			<div class="jh-red-flags">
-				<div class="jh-whoops">this tab is empty</div>
-			</div>
-			<div class="jh-report">
-				<div class="jh-whoops">this tab is empty</div>
-			</div>
-			<div class="jh-settings">
-			<div class="jh-whoops">this tab is empty</div>
-		</div>
-			<div class="in-progress">
-				<div class="throbber"></div>
-				<button class="cancelBtn" onclick="">Cancel</button>
-			</div>
-		</div>
+<div id="JoineryHelper">
+	<div class="jh-tabs">
+		<button id="jh-scan-tab" class="jh-tab-btn active">Scan</button>
+		<button id="jh-fix-tab" class="jh-tab-btn">Fix</button>
+		<button id="jh-dar-tab" class="jh-tab-btn">DAR</button>
+		<button id="jh-red-flags-tab" class="jh-tab-btn">Flags</button>
+		<button id="jh-report-tab" class="jh-tab-btn">Report</button>
+		<button id="jh-settings-tab" class="jh-tab-btn">Settings</button>
 	</div>
-</body>
-</html>
+	<div class="jh-content">
 
-document.createElement("div")
-const joinery = document.getElementById("joinery");
+		<div id="jh-scan-content" class="jh-tab-content selected">
 
-		this.mainElement.setAttribute("id", UserInterfaceID);
-		this.mainElement.setAttribute("style", mainCSS);
+			<div class="jh-target-line">
 
-		const scanButton = document.createElement("button");
-		scanButton.setAttribute("id", "scanBtn");
-		scanButton.setAttribute("type", "button");
-		scanButton.setAttribute("style", buttonCSS);
-		// scanButton.setAttribute("onclick", this.scan.);
-		scanButton.onclick = this.scan.bind(this);
+				<span>Target:</span>
+				<input type="radio" id="jh-scan-all" name="radio-scan" value="all" checked>
+				<label for="jh-scan-all">All</label>
+				<input type="radio" id="jh-scan-selected" name="radio-scan" value="selected">
+				<label for="jh-scan-selected">Selected</label>
+			</div>
+			<div class="jh-excluded">
+				<input type="text" id="jh-excluded" name="jh-excluded" placeholder="Excluded W/O's">
+			</div>
+			<button id="jh-scanBtn" class="jh-bigBtn">Start</button>
+		</div>
+		<div id="jh-fix-content" class="jh-tab-content">
 
-		const scanBtnContent = document.createTextNode("Scan");
-		scanButton.appendChild(scanBtnContent);
-		this.mainElement.appendChild(scanButton);
+			<div class="jh-target-line">
+				<span>Target:</span>
+				<input type="radio" id="jh-fix-yellow" name="radio-fix" value="yellows" checked>
+				<label for="jh-fix-yellow">Yellows</label>
+				<input type="radio" id="jh-fix-selected" name="radio-fix" value="selected">
+				<label for="jh-fix-selected">Selected</label>
+			</div>
+			<button id="jh-fixBtn" class="jh-bigBtn">Start</button>
+		</div>
+		<div id="jh-dar-content" class="jh-tab-content">
+			<div class="jh-target-line">
+				<span>Target:</span>
+				<input type="radio" id="jh-dar-greens" name="radio-dar" value="greens" checked>
+				<label for="jh-dar-greens">Greens</label>
+				<input type="radio" id="jh-dar-selected" name="radio-dar" value="selected">
+				<label for="jh-dar-selected">Selected</label>
+			</div>
+			<button id="jh-darBtn" class="jh-bigBtn">Start</button>
+		</div>
+		<div id="jh-red-flags-content" class="jh-tab-content">
+			<div class="jh-target-line">
+				<span>Target: Selected Only</span>
+			</div>
+			<button id="jh-starBtn" class="jh-bigBtn">Add ***</button>
+		</div>
+		<div id="jh-report-content" class="jh-tab-content">
+			<button id="jh-clearBtn" class="jh-bigBtn">Clear</button>
+			<button id="jh-reportBtn" class="jh-bigBtn">Report</button>
+		</div>
+		<div id="jh-settings-content" class="jh-tab-content">
+			<div class="jh-settings-line">
+				<input type="checkbox" id="jh-debugMode" name="jh-debug" value="debug">
+				<label for="jh-debugMode">Debug Mode</label>
+			</div>
+			<button id="jh-resetBtn" class="jh-bigBtn">Reset</button>
+	</div>
+		<div id="jh-in-progress-content" class="jh-tab-content">
+			<div class="jh-throbber">
+				<svg width="60" height="60" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><style>.spinner_ajPY{transform-origin:center;animation:spinner_AtaB .75s infinite linear}@keyframes spinner_AtaB{100%{transform:rotate(360deg)}}</style><path d="M12,1A11,11,0,1,0,23,12,11,11,0,0,0,12,1Zm0,19a8,8,0,1,1,8-8A8,8,0,0,1,12,20Z" opacity=".25"/><path style="fill:purple" d="M10.14,1.16a11,11,0,0,0-9,8.92A1.59,1.59,0,0,0,2.46,12,1.52,1.52,0,0,0,4.11,10.7a8,8,0,0,1,6.66-6.61A1.42,1.42,0,0,0,12,2.69h0A1.57,1.57,0,0,0,10.14,1.16Z" class="spinner_ajPY"/></svg>
+			</div>
+			<button id="jh-cancelBtn" class="jh-bigBtn">Cancel</button>
+		</div>
 
-		const resetButton = document.createElement("button");
-		resetButton.setAttribute("id", "resetBtn");
-		resetButton.setAttribute("type", "button");
-		resetButton.setAttribute("style", buttonCSS);
-		// scanButton.setAttribute("onclick", this.scan.);
-		resetButton.onclick = this.reset.bind(this);
-
-		const resetBtnContent = document.createTextNode("Reset");
-		resetButton.appendChild(resetBtnContent);
-		this.mainElement.appendChild(resetButton);
-
-
-		joinery.appendChild(this.mainElement);
-
-		this.makeUIDraggable(UserInterfaceID);
-		const setupRow = document.querySelector(".data-grid-table-row");
-		setupRow.click();
-		document.querySelector('[aria-label="Measurements"]').click();
-		setupRow.click();
+	</div>
+</div>
+<div id="jh-blast-shield"></div>
