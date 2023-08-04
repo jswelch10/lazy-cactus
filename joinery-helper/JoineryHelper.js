@@ -9,7 +9,6 @@
 			},
 			"fixSettings": {
 				"target": "yellows",
-				"unsavedNewTab": false,
 			},
 			"flagSettings" : {
 				"star" : true
@@ -355,8 +354,7 @@
 				"excludedWorkOrders": [...document.getElementById('jh-excluded').value.split(' ')],
 			},
 			"fixSettings": {
-				"target": document.querySelector("input[name='radio-fix']:checked").value,
-				"unsavedNewTab": document.getElementById("jh-auto-dar").checked,
+				"target": document.querySelector("input[name='radio-fix']:checked").value
 			},
 			"darSettings": {
 				"target": document.querySelector("input[name='radio-fix']:checked").value
