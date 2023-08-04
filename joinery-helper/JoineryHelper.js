@@ -5,8 +5,6 @@
 		this.appState = {
 			"scanSettings": {
 				"target": "all",
-				"autoFix": false,
-				"autoDar": false,
 				"excludedWorkOrders": [],
 			},
 			"fixSettings": {
@@ -354,8 +352,6 @@
 			...this.appState,
 			"scanSettings": {
 				"target": document.querySelector("input[name='radio-scan']:checked").value,
-				"autoFix": document.getElementById("jh-auto-fix").checked,
-				"autoDar": document.getElementById("jh-auto-dar").checked,
 				"excludedWorkOrders": [...document.getElementById('jh-excluded').value.split(' ')],
 			},
 			"fixSettings": {
