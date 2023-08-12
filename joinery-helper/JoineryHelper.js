@@ -150,8 +150,8 @@
 				const isMessageFlagged = !row.children[9].children[0].classList.contains("ng-hide");
 				if (isMessageFlagged) changeLogData.fixes.push('red flag');
 
-				const isNoMatOrFloat = !row.children[9].children[11].classList.contains("ng-hide");
-				const matDimMismatch = !row.children[9].children[10].classList.contains("ng-hide");
+				const isNoMatOrFloat = !row.children[9].children[10].classList.contains("ng-hide");
+				const matDimMismatch = !row.children[9].children[9].classList.contains("ng-hide");
 				const isDimensionFlagged = isNoMatOrFloat || matDimMismatch
 
 				const [artWidth, artHeight] = this.processArtDimensions(this.artDimensionsRef.innerText);
