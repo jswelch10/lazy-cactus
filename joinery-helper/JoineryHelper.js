@@ -217,9 +217,9 @@
 		this.fieldsTab = document.querySelector('[aria-label="Work Order Fields"]');
 		this.workflowTab = document.querySelector('[aria-label="Workflow"]');
 
-		this.widthInputRef = document.getElementById('input_44');
-		this.heightInputRef = document.getElementById('input_45');
-		this.workOrderInstructionsRef = document.getElementById('input_39');
+		this.widthInputRef = document.getElementById('input_45');
+		this.heightInputRef = document.getElementById('input_46');
+		this.workOrderInstructionsRef = document.getElementById('input_40');
 		this.saveButtonRef = document.querySelector('.work-order-form-save-popup > button');
 
 		this.workOrderNumRef = document.querySelector("#tab-content-5 .production-info tr:nth-child(3) td:last-child");
