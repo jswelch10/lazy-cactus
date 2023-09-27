@@ -36,7 +36,7 @@ export default class JoineryHelper {
 		this.Storage = new Storage()
 		this.UI = new UserInterface(this, tabsToSetup, btnsToSetup)
 		this.Scan = new Scan()
-		this.Job = new Job()
+		// this.Job = new Job()
 		this.RedFlags = new RedFlags()
 
 	}
@@ -100,113 +100,24 @@ export default class JoineryHelper {
 		this.intervalID = this.Scan.start(rows, refs, state, callbacks)
 
 	}
+	fixMeasurements() {
+		const callback = this.prepJob('fix')
 
+		this.Job.fix(callback)
+		// this.Job = null
+
+	};
+	flagHandler() {
+		const callback = this.prepJob('flags')
+		this.Job.addStars(callback)
+
+	}
 
 	completeDigitalArtReview() {
+		const callback = this.prepJob('dar')
+		this.Job.dar(callback)
 
-		if (this.updateAppState) this.updateState();
-		const arr = this.getRows(this.appState, 'dar');
-
-
-		this.workflowTab.click();
-
-		this.jobInterval(arr, (data) => {
-			document.querySelector('md-checkbox[aria-label="Digital Art Review"]').click();
-		});
-	};
-
-	flagHandler() {
-		const arr = this.getRows(this.appState, "flags");
-
-		this.jobInterval(arr, () => {
-
-			this.addStars();
-
-		});
 	}
-
-	jobInterval(dataArr, func) {
-
-		let counter = 0;
-		let setup = true;
-		let time = 0;
-		let data;
-		const bufferTime = 3;
-		let bufferCounter = 0;
-		this.toggleBlastShield();
-		this.intervalID = setInterval(() => {
-
-			let formReady = !this.saveButtonRef.hasAttribute('disabled');
-			if (this.appState.debugMode) console.log('form ready: ', formReady);
-			if (counter === dataArr.length) {
-
-				clearInterval(this.intervalID);
-				this.toggleBlastShield();
-				if (this.appState.debugMode) console.log('job done: interval cleared');
-
-			} else {
-
-				if (setup) {
-					if (this.appState.debugMode) console.log('starting setup');
-
-					data = dataArr[counter];
-					data.row.scrollIntoView({block: "center", behavior: "smooth"});
-					data.row.click();
-					setup = false;
-
-					if (this.appState.debugMode) console.log('setup: ', data, setup);
-
-				}
-				if (!this.appState.waitingForJoinery) {
-					if (this.appState.debugMode) console.log('joinery Open!');
-					func(data);
-					if (this.appState.debugMode) console.log('provided function has run');
-					this.appState.waitingForJoinery = true;
-
-				}
-				if (formReady) {
-
-					if (bufferCounter < bufferTime) {
-
-						bufferCounter++;
-
-					} else {
-
-						setup = true;
-						bufferCounter = 0;
-						counter++;
-
-						this.appState.waitingForJoinery = false;
-
-						if (this.appState.debugMode) console.log('done saving');
-
-					}
-				}
-				if (this.appState.debugMode) console.log(`${time} seconds have passed...`);
-				time++;
-			}
-		}, 1000);
-	}
-
-	fixMeasurements() {
-		this.fieldsTab.click();
-		if (this.updateAppState) this.updateState();
-		// const arr = this.appState.toBeFixedLog; //returns [ {data}, ... ]
-		const arr = this.getRows(this.appState, "fix"); // returns [ rowElement, ...]
-		if (arr.length === 0) {
-			if (this.appState.debugMode) console.log("no fixable items");
-			return
-		}
-		//needs [{data}, ...], not [rowElement]
-
-		this.jobInterval(arr, (data) => {
-
-			let modifier = data.isNoMatOrFloat ? 0 : .25;
-			this.changeOpeningValues(data.measurements.artWidth, data.measurements.artHeight, modifier);
-
-		}, 3000);
-	};
-
 
 	updateState(newState) {
 		/* TODO:
@@ -228,38 +139,34 @@ export default class JoineryHelper {
 
 	cancel() {
 		clearTimeout(this.intervalID);
-		clearInterval(this.intervalID);
-		this.toggleBlastShield();
+		clearInterval(this.Job.id);
+		this.Job = undefined
+		this.UI.toggleBlastShield();
 	}
 
-	addStars() {
-		let string = this.workOrderInstructionsRef.value
-		if (this.appState.debugMode) console.log('WOI Value: ', string);
-		if (string.slice(-3) === "***") return
-		if (this.appState.debugMode) console.log("doesn't have stars already");
-		this.workOrderInstructionsRef.dispatchEvent(new Event('focus'));
-		this.workOrderInstructionsRef.value = string + '***';
-		this.workOrderInstructionsRef.dispatchEvent(new Event('change'));
-		this.workOrderInstructionsRef.dispatchEvent(new Event('blur'));
+	prepJob(tabName) {
+		this.UI.toggleBlastShield()
 
-		this.saveButtonRef.click();
+		if (this.UI.updateAppState) this.updateState(this.UI.appSettings)
+
+		const state = this.appState
+		const rows = this.UI.getRows(this.appState, tabName);
+		const refs = this.UI.refs
+		if (rows.length === 0) {
+			if (this.appState.debugMode) console.log("no applicable item to work on");
+			return
+		}
+
+		this.Job = new Job(state, rows, refs)
+		const intervalEndCallback = () => {
+			this.Job = null
+			this.UI.toggleBlastShield()
+		}
+		return intervalEndCallback.bind(this)
+
 	}
 
-	changeOpeningValues(width, height, modifier) {
-		width -= modifier;
-		height -= modifier;
-		if (this.appState.debugMode) console.log('change values to: ', width, height);
-		this.widthInputRef.dispatchEvent(new Event('focus'));
-		this.widthInputRef.value = width;
-		this.widthInputRef.dispatchEvent(new Event('change'));
-		this.widthInputRef.dispatchEvent(new Event('blur'));
-		this.heightInputRef.dispatchEvent(new Event('focus'));
-		this.heightInputRef.value = height;
-		this.heightInputRef.dispatchEvent(new Event('change'));
-		this.heightInputRef.dispatchEvent(new Event('blur'));
 
-		this.saveButtonRef.click();
-	}
 
 	async reset() {
 		const tableGridRows = document.querySelectorAll(".data-grid-table-row");
@@ -320,13 +227,5 @@ export default class JoineryHelper {
 		this.Storage.clearStorage(this.appState)
 	}
 }
-
-	// toggleBlastShield() {
-	// 	if (this.appState.debugMode) console.log('blast shield toggled', this.blastShieldRef);
-	// 	this.appState.blastShield = !this.appState.blastShield
-	// 	this.blastShieldRef.classList.toggle("active");
-	// 	document.getElementById("jh-in-progress-content").classList.toggle("active")
-	// 	document.querySelector(".jh-content .selected").classList.toggle("loading");
-	// }
 
 

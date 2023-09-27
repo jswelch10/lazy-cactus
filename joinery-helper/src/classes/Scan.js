@@ -2,7 +2,7 @@ import Util from "./Utilities";
 
 export default class Scan {
     constructor() {
-
+    //TODO: add refs on construction or would this complicate calibration
     }
 
     start(rows, refs, state, callbacks = []){

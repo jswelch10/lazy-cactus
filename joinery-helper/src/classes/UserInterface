@@ -112,7 +112,7 @@ export default class UserInterface {
         const checkAll = document.querySelector('.data-grid-header md-checkbox');
 
         let rows
-        switch(tab) {
+        switch(tab) { //scan, fix, flags, dar
             case "scan" :
                 // sets rows to [rowElement, ...]
                 if(state.scanSettings.target === 'all') {
@@ -140,7 +140,7 @@ export default class UserInterface {
                         arr.push(state.toBeFixedLog.find(data => data.workOrderNum === row.dataset.workorderNum))
                     );
                     rows = arr.filter(item => item !== undefined);
-                    if (this.state.debugMode) console.log("selected items arr: ", rows);
+                    if (state.debugMode) console.log("selected items arr: ", rows);
 
                 }
                 break;
