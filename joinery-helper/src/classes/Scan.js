@@ -1,107 +1,166 @@
-// noinspection DuplicatedCode
+import Util from "./Utilities";
 
 export default class Scan {
-    constructor(JoineryHelper) {
-        this.jh = JoineryHelper
+    constructor() {
+
     }
-    scan() {
 
-        document.getElementById('jh-excluded').blur();
-        //this.toggleBlastShield();
-        this.jh.sendFor('userInterface', 'toggleBlastShield')()
-
-        //if(this.updateAppState) this.updateState();
-        this.jh.updateState()
-
+    start(rows, refs, state, callbacks = []){
         // done as an interval to ensure blast shield and state changes are handled first
-
-        this.jh.intervalID = setTimeout(() => {
-            //const rows = this.getRows(this.appState, 'scan');
-            const rows = this.jh.sendFor('userInterface','getRows')(this.jh.state, 'scan');
+        const nextState = {
+            ...state,
+            changeLog: [],
+            toBeDARedLog: [],
+            toBeFixedLog: []
+        }
+        return setTimeout(() => {
+            // const rows = this.getRows(this.appState, 'scan');
             const max = rows.length;
-            rows.forEach( (row, index) => {
-                if (this.jh.appState.debugMode) console.log(`item ${index+1}/${max}`);
+
+            rows.forEach( (row, index, array) => {
+                if (state.debugMode) console.log(`item ${index+1}/${max}`);
 
                 row.click();
 
-                const workOrderNum = this.jh.sendFor('userInterface','workOrderNumRef').innerHTML;
-                const changeLogData = {
-                    workOrderNum,
-                    fixes: []
-                }
-                row.dataset.workorderNum = workOrderNum;
-                let isSkip = false
-                if(this.appState.scanSettings.excludedWorkOrders
-                    && this.appState.scanSettings.excludedWorkOrders.length > 0) {
-                    const found = this.appState.scanSettings.excludedWorkOrders.find(WO => WO === workOrderNum );
-                    if (found) {
-                        changeLogData.fixes.push('proofing');
-                        this.appState.changeLog.push(changeLogData);
-                        isSkip = true;
-                    }
+                let data = {
+                    workOrderNum: refs.workOrderNumRef.innerHTML,
+                    isSkip: false,
+                    changeLogData: [],
+                    row
                 }
 
-                const isMessageFlagged = !row.children[9].children[0].classList.contains("ng-hide");
-                if (isMessageFlagged) changeLogData.fixes.push('red flag');
+                // changeLogData = {workOrderNum, fixes:[]}
+                row.dataset.workorderNum = data.workOrderNum;
 
-                const isNoMatOrFloat = !row.children[9].children[10].classList.contains("ng-hide");
-                const matDimMismatch = !row.children[9].children[9].classList.contains("ng-hide");
-                const isDimensionFlagged = isNoMatOrFloat || matDimMismatch
-
-                const [artWidth, artHeight] = this.processArtDimensions(this.artDimensionsRef.innerText);
-
-                const matOpeningWidth = parseFloat(this.widthInputRef.value);
-                const matOpeningHeight = parseFloat(this.heightInputRef.value);
+                data = this.checkIsExcluded(data,nextState)
+                data = this.attachFlags(data, refs)
+                this.sortIntoColors(data, nextState)
 
 
-                const data = {
-                    workOrderNum,
-                    row,
-                    "measurements": {
-                        artWidth,
-                        artHeight,
-                        matOpeningWidth,
-                        matOpeningHeight
-                    },
-                    isNoMatOrFloat,
-                    isDimensionFlagged,
-                    isMessageFlagged
-                }
 
-                if (!isDimensionFlagged && !isMessageFlagged) {
-                    this.appState.toBeDARedLog.push(data);
-                    if (isSkip) return this.changeRowColor(row, 'skip');
-                    return this.changeRowColor(row, 'success');
-                }
-
-                if(this.mathChecksOut(data)) {
-                    if (isMessageFlagged) {
-                        this.appState.changeLog.push(changeLogData);
-                        if (isSkip) return this.changeRowColor(row, 'skip');
-                        return this.changeRowColor(row, 'flagged-no-change'); 					//light pink
-                    }
-                    this.appState.toBeDARedLog.push(data);
-                    if (isSkip) return this.changeRowColor(row, 'skip');
-                    return this.changeRowColor(row, 'no-change'); 								//green
-                } else {
-
-                    changeLogData.fixes.push('sizing');
-                    this.appState.changeLog.push(changeLogData);
-
-                    this.appState.toBeFixedLog.push(data);
-                    if (isMessageFlagged) return this.changeRowColor(row, 'flagged-need-change'); //dark pink
-                    if (isSkip) return this.changeRowColor(row, 'skip');
-                    return this.changeRowColor(row, 'need-change');								// yellow
-                }
-            });
+            })
 
             rows[rows.length-1].click();
-            this.sendDataToStorage().catch(e => {
-                    if (this.appState.debugMode) console.log(e);
-                    alert("unable to set data in local storage")
-                }
-            );
-            this.toggleBlastShield();
+            if(callbacks.length)callbacks.forEach(cb => cb(nextState))
         }, 500);
     }
+
+    checkIsExcluded(data, state){
+        const obj = data
+        obj.isSkip = false
+        if(state.scanSettings.excludedWorkOrders
+            && state.scanSettings.excludedWorkOrders.length > 0) {
+            const found = state.scanSettings.excludedWorkOrders.find(WO => WO === obj.workOrderNum );
+            if (found) {
+                obj.changeLogData.push('proofing');
+                obj.isSkip = true;
+                state.changeLog.push(obj);
+            }
+        }
+        return obj
+    }
+    attachFlags(data, refs){
+        //updated query based on row   structure:  row.children[9].children[0].classList.includes("ng-hide")
+        // .children[9] is the flags column on joinery
+        // 0: message   Chat message
+        // ...
+        // 10: mat dim mismatch   Triangle
+        // 11: no mat size mismatch  Square with inside lines
+        const obj = data
+        const isMessageFlagged = !obj.row.children[9].children[0].classList.contains("ng-hide");
+        if (isMessageFlagged) obj.changeLogData.push('red flag');
+
+        const isNoMatOrFloat = !obj.row.children[9].children[10].classList.contains("ng-hide");
+        const matDimMismatch = !obj.row.children[9].children[9].classList.contains("ng-hide");
+        const isDimensionFlagged = isNoMatOrFloat || matDimMismatch
+
+        const [artWidth, artHeight] = Util.processArtDimensions(refs.artDimensionsRef.innerText);
+
+        const matOpeningWidth = parseFloat(refs.widthInputRef.value);
+        const matOpeningHeight = parseFloat(refs.heightInputRef.value);
+
+        return {
+            ...obj,
+            "measurements": {
+                artWidth,
+                artHeight,
+                matOpeningWidth,
+                matOpeningHeight
+            },
+            isNoMatOrFloat,
+            isDimensionFlagged,
+            isMessageFlagged
+        }
+
+
+
+    }
+    sortIntoColors(dataObj, state){
+        const data = dataObj
+
+        if (!data.isDimensionFlagged && !data.isMessageFlagged) {
+            if (data.isSkip) return this.changeRowColor(data, 'skip');
+            state.toBeDARedLog.push(data);
+            return this.changeRowColor(data, 'success');
+        }
+
+        if(Util.mathChecksOut(data)) {
+            if (data.isMessageFlagged) {
+                state.changeLog.push(data);
+                if (data.isSkip) return this.changeRowColor(data, 'skip');   //black path
+                return this.changeRowColor(data, 'flagged-no-change'); 		//light pink
+            }
+            if (data.isSkip) return this.changeRowColor(data, 'skip');       //black path
+            state.toBeDARedLog.push(data);
+            return this.changeRowColor(data, 'no-change'); 					//green path
+        } else {
+            if (data.isSkip) return this.changeRowColor(data, 'skip');
+            data.changeLogData.push('sizing');
+            state.changeLog.push(data);
+            state.toBeFixedLog.push(data);
+
+                   //black path
+            if (data.isMessageFlagged) return this.changeRowColor(                      //dark pink
+                data, 'flagged-need-change'
+            );
+
+            return this.changeRowColor(data, 'need-change');					// yellow
+        }
+    }
+
+    changeRowColor(data, setting) {
+        const {row} = data
+        switch(setting) {
+            case 'no-change':
+            case 'success':
+                row.style.backgroundColor = 'lime';
+                // return data
+                break;
+            case 'need-change':
+                row.style.backgroundColor = 'yellow';
+                // return data
+                break;
+            case 'flagged':
+                row.style.backgroundColor = 'orange';
+                // return data
+                break;
+            case 'flagged-no-change':
+                row.style.backgroundColor = 'lightpink';
+                // return data
+                break;
+            case 'flagged-need-change':
+                row.style.backgroundColor = 'lightcoral';
+                // return data
+                break;
+            case 'skip':
+            case 'error':
+            default:
+                row.style.backgroundColor = 'black';
+                row.style.color = 'white';
+                // return data
+
+        }
+    }
+
+
 }

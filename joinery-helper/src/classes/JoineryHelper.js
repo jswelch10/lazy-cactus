@@ -1,22 +1,14 @@
-// goal: primarily state management and mediation
-import Storage from "./Storage"
-import Job from "./Job"
-import RedFlags from "./RedFlags";
+import Storage from "./Storage";
 import Scan from "./Scan";
 import UserInterface from "./UserInterface";
-import Utilities from "./Utilities";
+import RedFlags from "./RedFlags";
+import Job from './Job'
 
 export default class JoineryHelper {
-	#intervalID;
-	constructor() {
-		this.storage = new Storage(this);
-		this.job = new Job(this);
-		this.redFlags = new RedFlags(this)
-		this.scan = new Scan(this);
-		this.userInterface = new UserInterface(this);
-
-
+	#intervalID = null
+	constructor(extId) {
 		this.updateAppState = false;
+		//.extId = extId; //needed to make injected js connectable to extension
 		this.appState = {
 			"scanSettings": {
 				"target": "all",
@@ -38,171 +30,76 @@ export default class JoineryHelper {
 			"debugMode": false,
 		}
 
-
-
-		//updated query based on row   structure:  row.children[9].children[0].classList.includes("ng-hide")
-		// .children[9] is the flags column on joinery
-		// 0: message   Chat message
-		// ...
-		// 10: mat dim mismatch   Triangle
-		// 11: no mat size mismatch  Square with inside lines
-
-		this.init();
-	}
-	sendFor(module, name) {
-
-		return this[module][name]
+		const btnsToSetup = ['scan','fix','star','dar','cancel','reset','report','clear']
+		const tabsToSetup = ["scan","fix","dar","red-flags", "report","settings"]
+		this.Storage = new Storage()
+		this.UI = new UserInterface(this, tabsToSetup, btnsToSetup)
+		this.Scan = new Scan()
+		this.Job = new Job()
+		this.RedFlags = new RedFlags()
 
 	}
+	getBtnFunc(name) {
+		switch (name) {
+			case 'scan':
+				return this.scan
 
-	get state(){
-		return this.appState
-	}
+			case 'fix':
+				return this.fixMeasurements
 
-	set state(state){
-		 //??????
-	}
-	get intervalID() {
-		return this.#intervalID
-	}
-	set intervalID(id) {
-		this.#intervalID = id
-	}
+			case 'star':
+				return this.flagHandler
 
-	appStateChanged () {
-		if (this.appState.debugMode) console.log("state changed some more");
-		if(!this.updateAppState) this.updateAppState = true;
+			case 'dar':
+				return this.completeDigitalArtReview
 
-	}
+			case 'cancel':
+				return this.cancel
 
-	updateState() {
-		/* TODO:
-		* 	 alter single settings on change to reduce queries
-		*    excludedWorkOrders needs a more robust string manipulation to handle user errors
-		* 	 work this in at start of each job perhaps by reworking jobInterval function
-		* */
+			case 'reset':
+				return this.reset
 
-		if(this.updateAppState) return
-		if (this.appState.debugMode) console.log("updating state");
-		this.appState = {
-			...this.appState,
-			"scanSettings": {
-				"target": document.querySelector("input[name='radio-scan']:checked").value,
-				"excludedWorkOrders": [...document.getElementById('jh-excluded').value.split(' ')],
-			},
-			"fixSettings": {
-				"target": document.querySelector("input[name='radio-fix']:checked").value
-			},
-			"darSettings": {
-				"target": document.querySelector("input[name='radio-fix']:checked").value
-			},
-			"debugMode": document.querySelector("input[name='jh-debug']").value
+			case 'report':
+				return this.report
+
+			case 'clear':
+				return this.clear
+
+			default:
+				console.error('button name not found')
 		}
-
-
-		if (this.appState.debugMode) console.log("app state after update: ", this.appState);
 	}
 
-	//******************************************************************************
-	init() {
-		//this function is UI/Storage
-		this.setupUI();
+	scan() {
 
-		chrome.storage.local.get("user").then(res => {
-			this.user = res.user
-		});
+		// document.getElementById('jh-excluded').blur();
+		this.UI.toggleBlastShield();
 
-		this.getPageRefs();
+		if(this.UI.updateAppState) this.updateState(this.UI.appSettings);
 
-		const setupRow = document.querySelector(".data-grid-table-row");
-
-		//this code is needed to initialize the sidebar for a proper scan
-		setupRow.click();
-		this.fieldsTab.click();
-		setupRow.click();
-	} //UI
-
-	setupUI(){
-		//stops text input and drag feature from fighting
-		document.getElementById('jh-excluded').onmousedown = (e) => e.stopPropagation();
-
-		//catch when settings are changed, so we don't read before every action
-		const func = this.appStateChanged
-		Array.from(document.querySelectorAll("#JoineryHelper input")).forEach( item => {
-			item.onchange = func.bind(this);
-		});
-
-
-		this.syncUI();
-		this.makeUIDraggable();
-	} //UI
-	syncUI() {
-		//below code syncs up tabs with their content
-		const names = [
-			"scan",
-			"fix",
-			"dar",
-			"red-flags",
-			"report",
-			"settings"
-		];
-		const tabs = Array.from(document.getElementsByClassName('jh-tab-btn'));
-		const contents = Array.from(document.getElementsByClassName('jh-tab-content'));
-
-		names.forEach(name => {
-
-			const tab = document.getElementById(`jh-${name}-tab`);
-			const content = document.getElementById(`jh-${name}-content`);
-
-			tab.addEventListener("click", () => {
-				if(tab.classList.contains('active')) return
-
-				tabs.forEach(item => item.classList.remove("active"));
-				contents.forEach(item => item.classList.remove("selected"));
-
-				tab.classList.add("active");
-				content.classList.add("selected");
-
+		const state = this.appState
+		const rows = this.UI.getRows(state, 'scan')
+		const refs = this.UI.refs
+		const sendData = nextState => {
+			this.Storage.sendDataToStorage(nextState).finally(() => {
+				// this.updateState({changeLog: []})
+			}).catch(e => {
+				if (this.appState.debugMode) console.log(e)
+				alert("unable to set data in local storage")
 			})
-		});
+		}
+		const callbacks = [
+			this.UI.toggleBlastShield.bind(this.UI),
+			this.updateState.bind(this), //needs .call?
+			sendData.bind(this)
+		]
 
-		//connects buttons to class functions
+		// this.intervalID = this.Scan.start(rows, refs, state)
+		this.intervalID = this.Scan.start(rows, refs, state, callbacks)
 
-		const btnArr = [
-			['scan', this.scan],
-			['fix', this.fixMeasurements],
-			['star', this.flagHandler],
-			['dar', this.completeDigitalArtReview],
-			['cancel', this.cancel],
-			['reset', this.reset],
-			['report', this.report],
-			['clear', this.clearStorage]
-		];
-
-		btnArr.forEach( ([btnName, func]) => {
-			const btn = document.getElementById(`jh-${btnName}Btn`)
-
-			btn.onclick = func.bind(this);
-		})
-
-	} //UI
-	getPageRefs() {
-		this.blastShieldRef = document.getElementById("jh-blast-shield");
-
-		this.fieldsTab = document.querySelector('[aria-label="Work Order Fields"]');
-		this.workflowTab = document.querySelector('[aria-label="Workflow"]');
-
-		this.widthInputRef = document.getElementById('input_44');
-		this.heightInputRef = document.getElementById('input_45');
-		this.workOrderInstructionsRef = document.getElementById('input_39');
-		this.saveButtonRef = document.querySelector('.work-order-form-save-popup > button');
-
-		this.workOrderNumRef = document.querySelector("#tab-content-5 .production-info tr:nth-child(3) td:last-child");
-		this.artDimensionsRef = document.querySelector(".artwork-info > div:last-of-type");
+	}
 
 
-		this.workflowTab.click();
-	} //UI
 
 	completeDigitalArtReview() {
 
@@ -212,10 +109,10 @@ export default class JoineryHelper {
 
 		this.workflowTab.click();
 
-		this.jobInterval(arr, () => {
+		this.jobInterval(arr, (data) => {
 			document.querySelector('md-checkbox[aria-label="Digital Art Review"]').click();
-		}, true);
-	}; //Job
+		});
+	};
 
 	flagHandler() {
 		const arr = this.getRows(this.appState, "flags");
@@ -225,10 +122,10 @@ export default class JoineryHelper {
 			this.addStars();
 
 		});
-	} //Job
+	}
 
-	jobInterval(dataArr, func, isDAR = false){
-		let isDar = isDar;
+	jobInterval(dataArr, func){
+
 		let counter = 0;
 		let setup = true;
 		let time = 0;
@@ -238,9 +135,7 @@ export default class JoineryHelper {
 		this.toggleBlastShield();
 		this.intervalID = setInterval(()=>{
 
-			let formReady = isDar ?
-				!this.saveButtonRef.hasAttribute('disabled'): //THIS LINE HERE, OFFICER
-				!this.saveButtonRef.hasAttribute('disabled');
+			let formReady = !this.saveButtonRef.hasAttribute('disabled');
 			if (this.appState.debugMode) console.log('form ready: ', formReady);
 			if(counter === dataArr.length){
 
@@ -290,7 +185,7 @@ export default class JoineryHelper {
 				time++;
 			}
 		},1000);
-	} //Jobs
+	}
 
 	fixMeasurements() {
 		this.fieldsTab.click();
@@ -309,88 +204,34 @@ export default class JoineryHelper {
 			this.changeOpeningValues(data.measurements.artWidth, data.measurements.artHeight, modifier);
 
 		}, 3000);
-	}; //Jobs
+	};
 
 
 
-
-
-	getRows(state, tab) {
-		//TODO rework to take target settings into account
-		// tabs: scan, fix, flags, dar
-		const allRows = Array.from(document.querySelectorAll(".data-grid-table-row"));
-		const selectedRows = allRows.filter(row => row.querySelector('.md-checked'));
-		const rowsEqual = allRows.length === selectedRows.length;
-		const checkAll = document.querySelector('.data-grid-header md-checkbox');
-
-		let rows
-		switch(tab) {
-			case "scan" :
-				// sets rows to [rowElement, ...]
-				if(state.scanSettings.target === 'all') {
-					rows = allRows;
-				} else {
-					rows = selectedRows
-				}
-				break;
-
-			case "fix" :
-				// sets rows to [{data}, ...]
-				if(state.fixSettings.target === 'yellows') {
-
-					if (this.appState.debugMode) console.log("to be fixed log: ", state.toBeFixedLog);
-
-					rows = [...state.toBeFixedLog].filter(data => !data.isMessageFlagged);
-
-					if (this.appState.debugMode) console.log("sending these to the job Interval: ", rows);
-
-				} else {
-					if (this.appState.debugMode) console.log("fixing selected items");
-					let arr = [];
-
-					[...selectedRows].forEach(row =>
-						arr.push(state.toBeFixedLog.find(data => data.workOrderNum === row.dataset.workorderNum))
-					);
-					rows = arr.filter(item => item !== undefined);
-					if (this.appState.debugMode) console.log("selected items arr: ", rows);
-
-				}
-				break;
-
-			case "flags" :
-				rows = selectedRows.map(row => {
-					return {row}
-				});
-				break;
-
-			case "dar" :
-				// sets rows to [{data}, ...] or [{row}, ...]
-				if(state.darSettings.target === 'greens') {
-					rows = [...state.toBeDARedLog]
-					if (this.appState.debugMode) console.log("green items arr: ", rows);
-				} else {
-					rows = selectedRows.map(row => {
-						return {row};
-					});
-
-				}
-				break;
-
+	updateState(newState) {
+		/* TODO:
+		* 	 alter single settings on change to reduce queries
+		*    excludedWorkOrders needs a more robust string manipulation to handle user errors
+		* 	 work this in at start of each job perhaps by reworking jobInterval function
+		* */
+		console.log(newState, 'inside update')
+		if (this.appState.debugMode) console.log("updating state");
+		this.appState = {
+			...this.appState,
+			...newState
 		}
-		checkAll.click();
-		if (!rowsEqual) checkAll.click();
 
 
-		if (rows.length !== 0) return rows;
-		return [];
+		if (this.appState.debugMode) console.log("app state after update: ", this.appState);
+	}
 
-	} //UI
+
 
 	cancel() {
 		clearTimeout(this.intervalID);
 		clearInterval(this.intervalID);
 		this.toggleBlastShield();
-	} //UI
+	}
 
 	addStars() {
 		let string = this.workOrderInstructionsRef.value
@@ -403,7 +244,7 @@ export default class JoineryHelper {
 		this.workOrderInstructionsRef.dispatchEvent(new Event('blur'));
 
 		this.saveButtonRef.click();
-	} //RedFlags
+	}
 
 	changeOpeningValues(width, height, modifier) {
 		width -= modifier;
@@ -419,7 +260,7 @@ export default class JoineryHelper {
 		this.heightInputRef.dispatchEvent(new Event('blur'));
 
 		this.saveButtonRef.click();
-	} // utilities
+	}
 
 	async reset() {
 		const tableGridRows = document.querySelectorAll(".data-grid-table-row");
@@ -431,7 +272,7 @@ export default class JoineryHelper {
 		this.appState.toBeDARedLog = [];
 		this.appState.changeLog = [];
 
-	} //storage
+	}
 
 	async report() {
 		/*	1. any tab can send scanned data error logs
@@ -459,17 +300,17 @@ export default class JoineryHelper {
 
 			});
 			console.log(csvString);
-		}).catch(() => console.log("no changes to report"))
+		}).catch(e => console.log("no changes to report"))
 			.finally(()=> {
-				console.log('***** CHANGE LOG END *****');
-				const blob = new Blob([csvString], {type: "text/csv"});
-				const url = window.URL.createObjectURL(blob);
-				const a = document.createElement("a");
-				a.setAttribute("href", url);
-				a.setAttribute("download", "change-log.csv");
-				a.click();
-				a.remove();
-			}
+					console.log('***** CHANGE LOG END *****');
+					const blob = new Blob([csvString], {type: "text/csv"});
+					const url = window.URL.createObjectURL(blob);
+					const a = document.createElement("a");
+					a.setAttribute("href", url);
+					a.setAttribute("download", "change-log.csv");
+					a.click();
+					a.remove();
+				}
 			);
 
 
@@ -477,146 +318,20 @@ export default class JoineryHelper {
 
 
 
-	} //storage
+	}
 
-	async sendDataToStorage(){
-		 let data = {}
-		 let updatedData = {}
-		 this.appState.changeLog.forEach((item) => {
-			 data[item.workOrderNum] = item.fixes;
-		 });
-		 if (this.appState.debugMode) console.log("data arr: ", data);
-		 chrome.storage.local.get("joineryHelper")
-			 .then((res) => {
 
-				 if (this.appState.debugMode) console.log("response from local storage: ", res);
 
-				 if(Object.keys(data).length !== 0) Object.keys(data).forEach(key => {
-					 if(!Object.keys(res.joineryHelper).length > 0 // if storage is not empty
-						 && res.joineryHelper.hasOwnProperty(key)) { // and if we have the key stored : merge the items
-						 if (this.appState.debugMode) console.log("merging data: ", key);
-						 updatedData[key] = [...new Set([...res.joineryHelper[key], ...data[key]])];
+	async clear(){
+		this.Storage.clearStorage(this.appState)
+	}
 
-					 } else {
+	// toggleBlastShield() {
+	// 	if (this.appState.debugMode) console.log('blast shield toggled', this.blastShieldRef);
+	// 	this.appState.blastShield = !this.appState.blastShield
+	// 	this.blastShieldRef.classList.toggle("active");
+	// 	document.getElementById("jh-in-progress-content").classList.toggle("active")
+	// 	document.querySelector(".jh-content .selected").classList.toggle("loading");
+	// }
 
-						 updatedData[key] = data[key];
-
-					 }
-				 });
-				 if (this.appState.debugMode) console.log("updated data: ", {...res.joineryHelper, ...updatedData});
-				 chrome.storage.local.set({"joineryHelper": {...res.joineryHelper, ...updatedData}})
-					 .catch(e => console.log("failed to set storage: ", e))
-					 .finally(() => this.appState.changeLog = []);
-			 })
-			 .catch(e => {
-				 if (this.appState.debugMode) console.log("failed to get storage: ", e)
-			 });
-	 } //storage
-
-	async clearStorage(){
-		if (!confirm("This action will clear your current JoineryHelper report data")) return;
-		chrome.storage.local.set({"joineryHelper": {}}).then(() => {
-			if (this.appState.debugMode) console.log("reset storage")
-		});
-	} //storage
-
-	toggleBlastShield() {
-		if (this.appState.debugMode) console.log('blast shield toggled', this.blastShieldRef);
-		this.appState.blastShield = !this.appState.blastShield
-		this.blastShieldRef.classList.toggle("active");
-		document.getElementById("jh-in-progress-content").classList.toggle("active")
-		document.querySelector(".jh-content .selected").classList.toggle("loading");
-	} //UI
-
-	 changeRowColor(rowEl, setting) {
-		 switch(setting) {
-			 case 'no-change':
-			 case 'success':
-				 rowEl.style.backgroundColor = 'lime';
-				 break;
-			 case 'need-change':
-				 rowEl.style.backgroundColor = 'yellow';
-				 break;
-			 case 'flagged':
-				 rowEl.style.backgroundColor = 'orange';
-				 break;
-			 case 'flagged-no-change':
-				 rowEl.style.backgroundColor = 'lightpink';
-				 break;
-			 case 'flagged-need-change':
-				 rowEl.style.backgroundColor = 'lightcoral';
-				 break;
-			 case 'skip':
-			 case 'error':
-			 default:
-				 rowEl.style.backgroundColor = 'black';
-				 rowEl.style.color = 'white';
-		 }
-	 } //UI
-
-	processArtDimensions(string) {
-		string = string.replaceAll(/[wh'" ]/g, '')
-		const dimensions = string.split('x');
-		return [this.roundEighthFloor(parseFloat(dimensions[0])), this.roundEighthFloor(parseFloat(dimensions[1]))];
-	} //Utilities
-
-	 mathChecksOut(data) {
-		 if(!data.isDimensionFlagged) return true;
-
-		 const {measurements} = data;
-
-		 if(data.isNoMatOrFloat) {
-			 return (measurements.artWidth === measurements.matOpeningWidth && measurements.artHeight === measurements.matOpeningHeight);
-		 } else {
-			 return (measurements.artWidth - .25) === measurements.matOpeningWidth && (measurements.artHeight - .25) === measurements.matOpeningHeight;
-		 }
-	 } //utilities
-
-	roundEighthFloor (value) {
-		if (value < 0) return 0
-		let current = 0
-		while (current <= value){
-			current += .125
-		}
-		return current - .125;
-	} //utilities
-
-	makeUIDraggable() {
-		// Make the DIV element draggable:
-		dragElement(document.getElementById('JoineryHelper'));
-
-		function dragElement(elmnt) {
-			let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-			elmnt.onmousedown = dragMouseDown;
-
-			function dragMouseDown(e) {
-				e.preventDefault();
-				// get the mouse cursor position at startup:
-				pos3 = e.clientX;
-				pos4 = e.clientY;
-				document.onmouseup = closeDragElement;
-				// call a function whenever the cursor moves:
-				document.onmousemove = elementDrag;
-			}
-
-			function elementDrag(e) {
-				e.preventDefault();
-				// calculate the new cursor position:
-				pos1 = pos3 - e.clientX;
-				pos2 = pos4 - e.clientY;
-				pos3 = e.clientX;
-				pos4 = e.clientY;
-				// set the element's new position:
-				elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
-				elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
-			}
-
-			function closeDragElement() {
-				// stop moving when mouse button is released:
-				document.onmouseup = null;
-				document.onmousemove = null;
-			}
-		}
-	} //utilities
-}
 

@@ -1,77 +1,60 @@
 export default class UserInterface {
-    constructor(JoineryHelper) {
+    constructor(JoineryHelper, tabsToSetup, btnsToSetup) {
         this.jh = JoineryHelper
+        this.updateAppState = false
+        this.blastShield = false
+        this.refs = {}
+
+        this.setupPageRefs()
+        this.setupInputWatcher()
+        this.setupUITabs(tabsToSetup)
+        this.setupUIButtons(btnsToSetup)
+        this.makeUIDraggable()
     }
-    init() {
-        //this function is UI/Storage
-        this.setupUI();
+    setupPageRefs() {
+        this.refs.blastShieldRef = document.getElementById("jh-blast-shield");
 
-        chrome.storage.local.get("user").then(res => {
-            this.user = res.user
-        });
+        this.refs.fieldsTab = document.querySelector('[aria-label="Work Order Fields"]');
+        this.refs.workflowTab = document.querySelector('[aria-label="Workflow"]');
 
-        this.getPageRefs();
+        this.refs.widthInputRef = document.getElementById('input_45');
+        this.refs.heightInputRef = document.getElementById('input_46');
+        this.refs.workOrderInstructionsRef = document.getElementById('input_40');
+        this.refs.saveButtonRef = document.querySelector('.work-order-form-save-popup > button');
 
-        const setupRow = document.querySelector(".data-grid-table-row");
+        this.refs.workOrderNumRef = document.querySelector("#tab-content-5 .production-info tr:nth-child(3) td:last-child");
+        this.refs.artDimensionsRef = document.querySelector(".artwork-info > div:last-of-type");
 
-        //this code is needed to initialize the sidebar for a proper scan
-        setupRow.click();
-        this.fieldsTab.click();
-        setupRow.click();
+
+        // this.workflowTab.click();
     }
 
-    getPageRefs(){
-        this.blastShieldRef = document.getElementById("jh-blast-shield");
-
-        this.fieldsTab = document.querySelector('[aria-label="Work Order Fields"]');
-        this.workflowTab = document.querySelector('[aria-label="Workflow"]');
-
-        this.widthInputRef = document.getElementById('input_44');
-        this.heightInputRef = document.getElementById('input_45');
-        this.workOrderInstructionsRef = document.getElementById('input_39');
-        this.saveButtonRef = document.querySelector('.work-order-form-save-popup > button');
-
-        this.workOrderNumRef = document.querySelector("#tab-content-5 .production-info tr:nth-child(3) td:last-child");
-        this.artDimensionsRef = document.querySelector(".artwork-info > div:last-of-type");
-
-        this.workflowTab.click();
-    }
-    setupUI(){
-        //stops text input and drag feature from fighting
-        document.getElementById('jh-excluded').onmousedown = (e) => e.stopPropagation();
-
-        //catch when settings are changed, so we don't read before every action
-        //const func = this.appStateChanged
-        const func = this.jh.appStateChanged
-        
-        Array.from(document.querySelectorAll("#JoineryHelper input")).forEach( item => {
-            item.onchange = func.bind(this);
+    setupInputWatcher(){
+        //catch when settings are changed so we don't read before every action
+        const func = this.appStateChanged
+        Array.from(document.querySelectorAll("#JoineryHelper input")).forEach( input => {
+            input.onchange = func.bind(this);
         });
 
 
-        this.syncUI();
-        this.makeUIDraggable();
+        // this.syncUI();
+        // this.makeUIDraggable()
+
     }
-    syncUI() {
+
+    setupUITabs(tabsToSetup) {
         //below code syncs up tabs with their content
-        const names = [
-            "scan",
-            "fix",
-            "dar",
-            "red-flags",
-            "report",
-            "settings"
-        ];
+        const tabNames = tabsToSetup
         const tabs = Array.from(document.getElementsByClassName('jh-tab-btn'));
         const contents = Array.from(document.getElementsByClassName('jh-tab-content'));
 
-        names.forEach(name => {
+        tabNames.forEach(name => {
 
             const tab = document.getElementById(`jh-${name}-tab`);
             const content = document.getElementById(`jh-${name}-content`);
 
             tab.addEventListener("click", () => {
-                if(tab.classList.contains('active')) return
+                if (tab.classList.contains('active')) return
 
                 tabs.forEach(item => item.classList.remove("active"));
                 contents.forEach(item => item.classList.remove("selected"));
@@ -81,97 +64,43 @@ export default class UserInterface {
 
             })
         });
-
+    }
         //connects buttons to class functions
+    setupUIButtons(btnArr) {
+        // const btnArr = [
+        //     ['scan', this.scan],
+        //     ['fix', this.fixMeasurements],
+        //     ['star', this.flagHandler],
+        //     ['dar', this.completeDigitalArtReview],
+        //     ['cancel', this.cancel],
+        //     ['reset', this.reset],
+        //     ['report', this.report],
+        //     ['clear', this.clearStorage]
+        // ];
 
-        const btnArr = [
-            ['scan', this.scan],
-            ['fix', this.fixMeasurements],
-            ['star', this.flagHandler],
-            ['dar', this.completeDigitalArtReview],
-            ['cancel', this.cancel],
-            ['reset', this.reset],
-            ['report', this.report],
-            ['clear', this.clearStorage]
-        ];
 
-        btnArr.forEach( ([btnName, func]) => {
-            const btn = document.getElementById(`jh-${btnName}Btn`)
+        btnArr.forEach( name => {
+            const btn = document.getElementById(`jh-${name}Btn`)
 
-            btn.onclick = func.bind(this);
+            btn.onclick = this.jh.getBtnFunc(name).bind(this.jh);
         })
 
     }
-    makeUIDraggable() {
-        // Make the DIV element draggable:
-        dragElement(document.getElementById('JoineryHelper'));
 
-        function dragElement(elmnt) {
-            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-            elmnt.onmousedown = dragMouseDown;
-
-            function dragMouseDown(e) {
-                e.preventDefault();
-                // get the mouse cursor position at startup:
-                pos3 = e.clientX;
-                pos4 = e.clientY;
-                document.onmouseup = closeDragElement;
-                // call a function whenever the cursor moves:
-                document.onmousemove = elementDrag;
-            }
-
-            function elementDrag(e) {
-                e.preventDefault();
-                // calculate the new cursor position:
-                pos1 = pos3 - e.clientX;
-                pos2 = pos4 - e.clientY;
-                pos3 = e.clientX;
-                pos4 = e.clientY;
-                // set the element's new position:
-                elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
-                elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
-            }
-
-            function closeDragElement() {
-                // stop moving when mouse button is released:
-                document.onmouseup = null;
-                document.onmousemove = null;
-            }
+    get appSettings(){
+        return {
+            "scanSettings": {
+                "target": document.querySelector("input[name='radio-scan']:checked").value,
+                "excludedWorkOrders": [...document.getElementById('jh-excluded').value.split(' ')],
+            },
+            "fixSettings": {
+                "target": document.querySelector("input[name='radio-fix']:checked").value
+            },
+            "darSettings": {
+                "target": document.querySelector("input[name='radio-dar']:checked").value
+            },
+            "debugMode": document.querySelector("input[name='jh-debug']").checked
         }
-    }
-
-    changeRowColor(rowEl, setting) {
-        switch(setting) {
-            case 'no-change':
-            case 'success':
-                rowEl.style.backgroundColor = 'lime';
-                break;
-            case 'need-change':
-                rowEl.style.backgroundColor = 'yellow';
-                break;
-            case 'flagged':
-                rowEl.style.backgroundColor = 'orange';
-                break;
-            case 'flagged-no-change':
-                rowEl.style.backgroundColor = 'lightpink';
-                break;
-            case 'flagged-need-change':
-                rowEl.style.backgroundColor = 'lightcoral';
-                break;
-            case 'skip':
-            case 'error':
-            default:
-                rowEl.style.backgroundColor = 'black';
-                rowEl.style.color = 'white';
-        }
-    }
-
-    toggleBlastShield() {
-        if (this.appState.debugMode) console.log('blast shield toggled', this.blastShieldRef);
-        this.appState.blastShield = !this.appState.blastShield
-        this.blastShieldRef.classList.toggle("active");
-        document.getElementById("jh-in-progress-content").classList.toggle("active")
-        document.querySelector(".jh-content .selected").classList.toggle("loading");
     }
 
     getRows(state, tab) {
@@ -197,21 +126,21 @@ export default class UserInterface {
                 // sets rows to [{data}, ...]
                 if(state.fixSettings.target === 'yellows') {
 
-                    if (this.appState.debugMode) console.log("to be fixed log: ", state.toBeFixedLog);
+                    if (state.debugMode) console.log("to be fixed log: ", state.toBeFixedLog);
 
                     rows = [...state.toBeFixedLog].filter(data => !data.isMessageFlagged);
 
-                    if (this.appState.debugMode) console.log("sending these to the job Interval: ", rows);
+                    if (state.debugMode) console.log("sending these to the job Interval: ", rows);
 
                 } else {
-                    if (this.appState.debugMode) console.log("fixing selected items");
+                    if (state.debugMode) console.log("fixing selected items");
                     let arr = [];
 
                     [...selectedRows].forEach(row =>
                         arr.push(state.toBeFixedLog.find(data => data.workOrderNum === row.dataset.workorderNum))
                     );
                     rows = arr.filter(item => item !== undefined);
-                    if (this.appState.debugMode) console.log("selected items arr: ", rows);
+                    if (this.state.debugMode) console.log("selected items arr: ", rows);
 
                 }
                 break;
@@ -226,7 +155,7 @@ export default class UserInterface {
                 // sets rows to [{data}, ...] or [{row}, ...]
                 if(state.darSettings.target === 'greens') {
                     rows = [...state.toBeDARedLog]
-                    if (this.appState.debugMode) console.log("green items arr: ", rows);
+                    if (state.debugMode) console.log("green items arr: ", rows);
                 } else {
                     rows = selectedRows.map(row => {
                         return {row};
@@ -244,42 +173,77 @@ export default class UserInterface {
         return [];
 
     }
+    appStateChanged () {
+        // if (this.appState.debugMode) console.log("state changed some more");
+        if(!this.updateAppState) this.updateAppState = true;
 
-    updateState() {
-        /* TODO:
-        * 	 alter single settings on change to reduce queries
-        *    excludedWorkOrders needs a more robust string manipulation to handle user errors
-        * 	 work this in at start of each job perhaps by reworking jobInterval function
-        * */
-        if (this.appState.debugMode) console.log("updating state");
-        this.appState = {
-            ...this.appState,
-            "scanSettings": {
-                "target": document.querySelector("input[name='radio-scan']:checked").value,
-                "excludedWorkOrders": [...document.getElementById('jh-excluded').value.split(' ')],
-            },
-            "fixSettings": {
-                "target": document.querySelector("input[name='radio-fix']:checked").value
-            },
-            "darSettings": {
-                "target": document.querySelector("input[name='radio-fix']:checked").value
-            },
-            "debugMode": document.querySelector("input[name='jh-debug']").value
-        }
-
-
-        if (this.appState.debugMode) console.log("app state after update: ", this.appState);
     }
+    toggleBlastShield() {
+        document.getElementById('jh-excluded').blur();
+        // if (this.appState.debugMode) console.log('blast shield toggled', this.blastShieldRef);
+        this.blastShield = !this.blastShield
+        this.refs.blastShieldRef.classList.toggle("active");
+        document.getElementById("jh-in-progress-content").classList.toggle("active")
+        document.querySelector(".jh-content .selected").classList.toggle("loading");
+    }
+    makeUIDraggable() {
+        // Make the DIV element draggable:
+        let pos1, pos2, pos3, pos4
+        const joinery = document.getElementById('JoineryHelper')
 
-    async reset() {
-        const tableGridRows = document.querySelectorAll(".data-grid-table-row");
-        tableGridRows.forEach(row =>{
-            row.style.removeProperty('background-color');
-            row.style.removeProperty('color');
-        });
-        this.appState.toBeFixedLog = [];
-        this.appState.toBeDARedLog = [];
-        this.appState.changeLog = [];
+        joinery.onmousedown = e => {
+            e.preventDefault()
+            pos3 = e.clientX
+            pos4 = e.clientY
+            joinery.onmousemove = e => {
+                e.preventDefault()
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                joinery.style.top = (joinery.offsetTop - pos2) + "px";
+                joinery.style.left = (joinery.offsetLeft - pos1) + "px";
+            }
+            joinery.onmouseup = e => {
+                joinery.onmousemove = null
+                joinery.onmouseup = null
+            }
+        }
+        document.getElementById('jh-excluded').onmousedown = (e) => e.stopPropagation();
 
+        // function dragElement(elmnt) {
+        //     let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        //     elmnt.onmousedown = dragMouseDown;
+        //
+        //     function dragMouseDown(e) {
+        //         e = e || window.event;
+        //         e.preventDefault();
+        //         // get the mouse cursor position at startup:
+        //         pos3 = e.clientX;
+        //         pos4 = e.clientY;
+        //         document.onmouseup = closeDragElement;
+        //         // call a function whenever the cursor moves:
+        //         document.onmousemove = elementDrag;
+        //     }
+        //
+        //     function elementDrag(e) {
+        //         e = e || window.event;
+        //         e.preventDefault();
+        //         // calculate the new cursor position:
+        //         pos1 = pos3 - e.clientX;
+        //         pos2 = pos4 - e.clientY;
+        //         pos3 = e.clientX;
+        //         pos4 = e.clientY;
+        //         // set the element's new position:
+        //         elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+        //         elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+        //     }
+        //
+        //     function closeDragElement() {
+        //         // stop moving when mouse button is released:
+        //         document.onmouseup = null;
+        //         document.onmousemove = null;
+        //     }
+        // }
     }
 }
