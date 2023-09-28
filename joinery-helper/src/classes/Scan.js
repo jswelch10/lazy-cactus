@@ -35,6 +35,7 @@ export default class Scan {
 
                 row.dataset.workorderNum = data.workOrderNum;
 
+                this.checkFacility(row)
                 data = this.checkIsExcluded(data,nextState)
                 data = this.attachFlags(data, refs)
                 this.sortIntoColors(data, nextState)
@@ -97,6 +98,27 @@ export default class Scan {
             isDimensionFlagged,
             isMessageFlagged
         }
+
+
+
+    }
+
+    checkFacility(row) {
+        const facility = row.querySelector('div[bo-bind="workOrder.facility.identifier"]')
+        if(facility.innerHTML !== 'LEX-01') {
+            facility.style.cssText = `
+                background-color: white;
+                padding: 2px;
+                border-radius: 12px;
+                border: solid 2px black;
+                margin-left: -11px;
+                margin-right: 11px;
+                text-align: center;
+                color: red;
+                font-weight: bold;
+            `
+        }
+
 
 
 
