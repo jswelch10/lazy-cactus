@@ -2,7 +2,7 @@ import Util from "./Utilities";
 
 export default class Scan {
     constructor() {
-    //TODO: add refs on construction or would this complicate calibration
+    //TODO: add refs on construction or would this complicate calibration?
     }
 
     start(rows, refs, state, callbacks = []){
@@ -13,11 +13,13 @@ export default class Scan {
             toBeDARedLog: [],
             toBeFixedLog: []
         }
+
         return setTimeout(() => {
             // const rows = this.getRows(this.appState, 'scan');
             const max = rows.length;
 
             rows.forEach( (row, index, array) => {
+
                 if (state.debugMode) console.log(`item ${index+1}/${max}`);
 
                 row.click();
@@ -29,29 +31,30 @@ export default class Scan {
                     row
                 }
 
-                // changeLogData = {workOrderNum, fixes:[]}
                 row.dataset.workorderNum = data.workOrderNum;
 
                 data = this.checkIsExcluded(data,nextState)
                 data = this.attachFlags(data, refs)
                 this.sortIntoColors(data, nextState)
 
-
-
             })
 
             rows[rows.length-1].click();
             if(callbacks.length)callbacks.forEach(cb => cb(nextState))
+            console.log(nextState)
+
         }, 500);
     }
 
     checkIsExcluded(data, state){
         const obj = data
+        if (state.debugMode) console.log(obj.workOrderNum)
         obj.isSkip = false
         if(state.scanSettings.excludedWorkOrders
             && state.scanSettings.excludedWorkOrders.length > 0) {
             const found = state.scanSettings.excludedWorkOrders.find(WO => WO === obj.workOrderNum );
             if (found) {
+                console.log('workorder is excluded')
                 obj.changeLogData.push('proofing');
                 obj.isSkip = true;
                 state.changeLog.push(obj);
@@ -59,6 +62,7 @@ export default class Scan {
         }
         return obj
     }
+
     attachFlags(data, refs){
         //updated query based on row   structure:  row.children[9].children[0].classList.includes("ng-hide")
         // .children[9] is the flags column on joinery
@@ -95,6 +99,7 @@ export default class Scan {
 
 
     }
+
     sortIntoColors(dataObj, state){
         const data = dataObj
 

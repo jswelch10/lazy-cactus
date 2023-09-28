@@ -1,15 +1,13 @@
 import Storage from "./Storage";
 import Scan from "./Scan";
 import UserInterface from "./UserInterface";
-import RedFlags from "./RedFlags";
 import Job from './Job'
 
 export default class JoineryHelper {
 	#intervalID = null
 
-	constructor(extId) {
+	constructor() {
 		this.updateAppState = false;
-		//.extId = extId; //needed to make injected js connectable to extension
 		this.appState = {
 			"scanSettings": {
 				"target": "all",
@@ -33,11 +31,11 @@ export default class JoineryHelper {
 
 		const btnsToSetup = ['scan', 'fix', 'star', 'dar', 'cancel', 'reset', 'report', 'clear']
 		const tabsToSetup = ["scan", "fix", "dar", "red-flags", "report", "settings"]
+
 		this.Storage = new Storage()
 		this.UI = new UserInterface(this, tabsToSetup, btnsToSetup)
 		this.Scan = new Scan()
-		// this.Job = new Job()
-		this.RedFlags = new RedFlags()
+		this.Job = null
 
 	}
 
@@ -100,42 +98,30 @@ export default class JoineryHelper {
 		this.intervalID = this.Scan.start(rows, refs, state, callbacks)
 
 	}
+
 	fixMeasurements() {
 		const callback = this.prepJob('fix')
-
 		this.Job.fix(callback)
-		// this.Job = null
-
 	};
+
 	flagHandler() {
 		const callback = this.prepJob('flags')
 		this.Job.addStars(callback)
-
 	}
 
 	completeDigitalArtReview() {
 		const callback = this.prepJob('dar')
 		this.Job.dar(callback)
-
 	}
 
 	updateState(newState) {
-		/* TODO:
-		* 	 alter single settings on change to reduce queries
-		*    excludedWorkOrders needs a more robust string manipulation to handle user errors
-		* 	 work this in at start of each job perhaps by reworking jobInterval function
-		* */
-		console.log(newState, 'inside update')
 		if (this.appState.debugMode) console.log("updating state");
 		this.appState = {
 			...this.appState,
 			...newState
 		}
-
-
 		if (this.appState.debugMode) console.log("app state after update: ", this.appState);
 	}
-
 
 	cancel() {
 		clearTimeout(this.intervalID);
@@ -166,8 +152,6 @@ export default class JoineryHelper {
 
 	}
 
-
-
 	async reset() {
 		const tableGridRows = document.querySelectorAll(".data-grid-table-row");
 		tableGridRows.forEach(row => {
@@ -181,50 +165,13 @@ export default class JoineryHelper {
 	}
 
 	async report() {
-		/*	1. any tab can send scanned data error logs
-			2. get and combine new errors into master error log file
-			3. save new master error log
-			4.
 
-			1. report button sends request to local storage
-			2. takes response and turns it into csv
-			3. immediately downloads master csv
-
-		*/
-		console.clear();
-		const name = this.user.substring(0, this.user.indexOf("."));
-		const date = new Date().toLocaleString('en-us', {hour12: false}).replace(",", "");
-		let csvString = 'Date,Workorder,Who,Level,Errors\n';
-
-		console.log('***** CHANGE LOG *****');
-
-		chrome.storage.local.get("joineryHelper").then((res) => {
-
-			Object.keys(res.joineryHelper).forEach(key => {
-
-				csvString += `${date},${key},${name},,"${res.joineryHelper[key].join(', ')}"\n`
-
-			});
-			console.log(csvString);
-		}).catch(e => console.log("no changes to report"))
-			.finally(() => {
-					console.log('***** CHANGE LOG END *****');
-					const blob = new Blob([csvString], {type: "text/csv"});
-					const url = window.URL.createObjectURL(blob);
-					const a = document.createElement("a");
-					a.setAttribute("href", url);
-					a.setAttribute("download", "change-log.csv");
-					a.click();
-					a.remove();
-				}
-			);
-
+		await this.Storage.exportAndLogStorage()
 
 	}
 
-
 	async clear() {
-		this.Storage.clearStorage(this.appState)
+		await this.Storage.clearStorage(this.appState)
 	}
 }
 

@@ -5,13 +5,11 @@ export default class Storage {
 
         chrome.storage.local.get('user').then(res => {
             this.user = res.user
-            console.log('user set in storage')
         })
 
 
     }
     async sendDataToStorage(state){
-        console.log(state, 'state inside top of Storage.sendDataToStorage')
         let {changeLog} = state
         let data = {}
         let updatedData = {}
@@ -44,7 +42,7 @@ export default class Storage {
                 if (state.debugMode) console.log("updated data: ", {...res.joineryHelper, ...updatedData});
 
                 chrome.storage.local.set({"joineryHelper": {...res.joineryHelper, ...updatedData}})
-                    .catch(e => console.log("failed to set storage: ", e))
+                    .catch(e => console.error("failed to set storage: ", e))
                     // .finally(() => state.changeLog = []);
             })
             .catch(e => {
@@ -57,5 +55,39 @@ export default class Storage {
         chrome.storage.local.set({"joineryHelper": {}}).then(e => {
             if (state.debugMode) console.log("reset storage")
         });
+    }
+    async exportAndLogStorage() {
+        console.clear();
+
+        const name = this.user.substring(0, this.user.indexOf("."));
+        const date = new Date()
+        const time =  date.toLocaleString('en-us', {hour12: false}).replace(",", "");
+        let csvString = 'Date,Workorder,Who,Level,Errors\n';
+
+        console.log('***** CHANGE LOG *****');
+
+        chrome.storage.local.get("joineryHelper").then((res) => {
+
+            Object.keys(res.joineryHelper).forEach(key => {
+
+                csvString += `${time},${key},${name},,"${res.joineryHelper[key].join(', ')}"\n`
+
+            });
+            console.log(csvString);
+        }).catch(e => console.log("no changes to report"))
+            .finally(() => {
+                    console.log('***** CHANGE LOG END *****');
+                    const blob = new Blob([csvString], {type: "text/csv"});
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.setAttribute("href", url);
+                    a.setAttribute("download",
+                        `change-log-${date.getMonth().toString()}-${date.getDay().toString()}.csv`);
+                    a.click();
+                    a.remove();
+                }
+            );
+
+
     }
 }

@@ -12,38 +12,29 @@ export default class UserInterface {
         this.makeUIDraggable()
     }
     setupPageRefs() {
-        this.refs.blastShieldRef = document.getElementById("jh-blast-shield");
 
         this.refs.fieldsTab = document.querySelector('[aria-label="Work Order Fields"]');
         this.refs.workflowTab = document.querySelector('[aria-label="Workflow"]');
-
+        this.refs.saveButtonRef = document.querySelector('.work-order-form-save-popup > button');
         this.refs.widthInputRef = document.getElementById('input_45');
         this.refs.heightInputRef = document.getElementById('input_46');
-        this.refs.workOrderInstructionsRef = document.getElementById('input_40');
-        this.refs.saveButtonRef = document.querySelector('.work-order-form-save-popup > button');
-
-        this.refs.workOrderNumRef = document.querySelector("#tab-content-5 .production-info tr:nth-child(3) td:last-child");
+        this.refs.blastShieldRef = document.getElementById("jh-blast-shield");
+        this.refs.workOrderNumRef = document.querySelector("#tab-content-5 .production-info tr:nth-child(4) td:last-child");
         this.refs.artDimensionsRef = document.querySelector(".artwork-info > div:last-of-type");
+        this.refs.workOrderInstructionsRef = document.getElementById('input_40');
 
 
         // this.workflowTab.click();
     }
 
     setupInputWatcher(){
-        //catch when settings are changed so we don't read before every action
         const func = this.appStateChanged
         Array.from(document.querySelectorAll("#JoineryHelper input")).forEach( input => {
             input.onchange = func.bind(this);
         });
-
-
-        // this.syncUI();
-        // this.makeUIDraggable()
-
     }
 
     setupUITabs(tabsToSetup) {
-        //below code syncs up tabs with their content
         const tabNames = tabsToSetup
         const tabs = Array.from(document.getElementsByClassName('jh-tab-btn'));
         const contents = Array.from(document.getElementsByClassName('jh-tab-content'));
@@ -65,19 +56,8 @@ export default class UserInterface {
             })
         });
     }
-        //connects buttons to class functions
-    setupUIButtons(btnArr) {
-        // const btnArr = [
-        //     ['scan', this.scan],
-        //     ['fix', this.fixMeasurements],
-        //     ['star', this.flagHandler],
-        //     ['dar', this.completeDigitalArtReview],
-        //     ['cancel', this.cancel],
-        //     ['reset', this.reset],
-        //     ['report', this.report],
-        //     ['clear', this.clearStorage]
-        // ];
 
+    setupUIButtons(btnArr) {
 
         btnArr.forEach( name => {
             const btn = document.getElementById(`jh-${name}Btn`)
@@ -88,6 +68,9 @@ export default class UserInterface {
     }
 
     get appSettings(){
+        /*  TODO:
+         *    excludedWorkOrders needs a more robust string manipulation to handle user errors
+         */
         return {
             "scanSettings": {
                 "target": document.querySelector("input[name='radio-scan']:checked").value,
@@ -174,20 +157,19 @@ export default class UserInterface {
 
     }
     appStateChanged () {
-        // if (this.appState.debugMode) console.log("state changed some more");
+        if (this.jh.appState.debugMode) console.log("state changed some more");
         if(!this.updateAppState) this.updateAppState = true;
 
     }
     toggleBlastShield() {
         document.getElementById('jh-excluded').blur();
-        // if (this.appState.debugMode) console.log('blast shield toggled', this.blastShieldRef);
+        if (this.jh.appState.debugMode) console.log('blast shield toggled', this.refs.blastShieldRef);
         this.blastShield = !this.blastShield
         this.refs.blastShieldRef.classList.toggle("active");
         document.getElementById("jh-in-progress-content").classList.toggle("active")
         document.querySelector(".jh-content .selected").classList.toggle("loading");
     }
     makeUIDraggable() {
-        // Make the DIV element draggable:
         let pos1, pos2, pos3, pos4
         const joinery = document.getElementById('JoineryHelper')
 
@@ -201,49 +183,15 @@ export default class UserInterface {
                 pos2 = pos4 - e.clientY;
                 pos3 = e.clientX;
                 pos4 = e.clientY;
-                joinery.style.top = (joinery.offsetTop - pos2) + "px";
-                joinery.style.left = (joinery.offsetLeft - pos1) + "px";
+                joinery.style.top = `${joinery.offsetTop - pos2}px`;
+                joinery.style.left = `${joinery.offsetLeft - pos1}px`;
             }
             joinery.onmouseup = e => {
                 joinery.onmousemove = null
                 joinery.onmouseup = null
             }
         }
-        document.getElementById('jh-excluded').onmousedown = (e) => e.stopPropagation();
 
-        // function dragElement(elmnt) {
-        //     let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-        //     elmnt.onmousedown = dragMouseDown;
-        //
-        //     function dragMouseDown(e) {
-        //         e = e || window.event;
-        //         e.preventDefault();
-        //         // get the mouse cursor position at startup:
-        //         pos3 = e.clientX;
-        //         pos4 = e.clientY;
-        //         document.onmouseup = closeDragElement;
-        //         // call a function whenever the cursor moves:
-        //         document.onmousemove = elementDrag;
-        //     }
-        //
-        //     function elementDrag(e) {
-        //         e = e || window.event;
-        //         e.preventDefault();
-        //         // calculate the new cursor position:
-        //         pos1 = pos3 - e.clientX;
-        //         pos2 = pos4 - e.clientY;
-        //         pos3 = e.clientX;
-        //         pos4 = e.clientY;
-        //         // set the element's new position:
-        //         elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
-        //         elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
-        //     }
-        //
-        //     function closeDragElement() {
-        //         // stop moving when mouse button is released:
-        //         document.onmouseup = null;
-        //         document.onmousemove = null;
-        //     }
-        // }
+        document.getElementById('jh-excluded').onmousedown = (e) => e.stopPropagation();
     }
 }
