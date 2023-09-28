@@ -3,6 +3,8 @@ import Util from "./Utilities";
 export default class Scan {
     constructor() {
     //TODO: add refs on construction or would this complicate calibration?
+        this.NoMatOrFloatFlagNum = 10
+        this.MatDimensionFlagNum = 9
     }
 
     start(rows, refs, state, callbacks = []){
@@ -74,8 +76,8 @@ export default class Scan {
         const isMessageFlagged = !obj.row.children[9].children[0].classList.contains("ng-hide");
         if (isMessageFlagged) obj.changeLogData.push('red flag');
 
-        const isNoMatOrFloat = !obj.row.children[9].children[10].classList.contains("ng-hide");
-        const matDimMismatch = !obj.row.children[9].children[9].classList.contains("ng-hide");
+        const isNoMatOrFloat = !obj.row.children[9].children[this.NoMatOrFloatFlagNum].classList.contains("ng-hide");
+        const matDimMismatch = !obj.row.children[9].children[this.MatDimensionFlagNum].classList.contains("ng-hide");
         const isDimensionFlagged = isNoMatOrFloat || matDimMismatch
 
         const [artWidth, artHeight] = Util.processArtDimensions(refs.artDimensionsRef.innerText);
