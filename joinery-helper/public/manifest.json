@@ -19,12 +19,12 @@
   },
 
   "host_permissions": [
-    "https://framebridge.com/*"
+    "https://*.framebridge.com/*"
   ],
 
   "content_scripts": [
     {
-      "matches": ["https://joinery.framebridge.com/*"],
+      "matches": ["https://*.framebridge.com/*"],
       "css": ["styles.css"]
     }
   ],
@@ -33,13 +33,13 @@
     "ids": [
       "eflomlhjhbnggmopdpccekfgjapdjdij"
     ],
-    "matches": ["https://joinery.framebridge.com/joinery##*", "https://joinery.framebridge.com/joinery/work_orders##*"]
+    "matches": ["https://*.framebridge.com/joinery##*", "https://*.framebridge.com/joinery/work_orders##*"]
   },
 
   "web_accessible_resources": [
     {
       "resources": ["index.html", "styles.css", "JoineryHelper.js"],
-      "matches": ["https://joinery.framebridge.com/*"]
+      "matches": ["https://*.framebridge.com/*"]
     }
   ],
 
