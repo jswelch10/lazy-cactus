@@ -23,6 +23,7 @@ export default class UserInterface {
         this.refs.artDimensionsRef = document.querySelector(".artwork-info > div:last-of-type");
         this.refs.workOrderInstructionsRef = document.getElementById('input_40');
 
+        this.refs.borderT = document.getElementById('input_272')
 
         // this.workflowTab.click();
     }

@@ -36,6 +36,7 @@ export default class Scan {
                 row.dataset.workorderNum = data.workOrderNum;
 
                 this.checkFacility(row)
+                this.checkMatStyle(row, refs.borderT.value)
                 data = this.checkIsExcluded(data,nextState)
                 data = this.attachFlags(data, refs)
                 this.sortIntoColors(data, nextState)
@@ -122,6 +123,42 @@ export default class Scan {
 
 
 
+    }
+
+    checkMatStyle(row, borderT) {
+        const batchColumn = row.querySelector('div[bo-bind="workOrder.work_order_batch_number"]')
+        const productMatArtCombo = row.querySelector('div[bo-bind="workOrder.productMatArtCombo()"]').innerHTML
+        // Float Mounting (+$25) - Float
+        const incorrectFloat = /Float Mounting \(\+\$25\)$/
+        const noMat = /No Mat$/
+
+        if(incorrectFloat.test(productMatArtCombo)) {
+            batchColumn.innerText = 'Mount Clash'
+            batchColumn.style.cssText = `
+                background-color: white;
+                padding: 2px;
+                border-radius: 12px;
+                border: solid 2px black;
+                margin-left: -11px;
+                margin-right: 11px;
+                text-align: center;
+                color: red;
+                font-weight: bold;
+            `
+        } else if (noMat.test(productMatArtCombo) && borderT !== 0){
+            batchColumn.innerText = 'NoMat w/Border'
+            batchColumn.style.cssText = `
+                background-color: white;
+                padding: 2px;
+                border-radius: 12px;
+                border: solid 2px black;
+                margin-left: -11px;
+                margin-right: 11px;
+                text-align: center;
+                color: red;
+                font-weight: bold;
+            `
+        }
     }
 
     sortIntoColors(dataObj, state){
