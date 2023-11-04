@@ -145,7 +145,7 @@ export default class Scan {
                 color: red;
                 font-weight: bold;
             `
-        } else if (noMat.test(productMatArtCombo) && borderT !== 0){
+        } else if (noMat.test(productMatArtCombo) && parseFloat(borderT) > 0.0){
             batchColumn.innerText = 'NoMat w/Border'
             batchColumn.style.cssText = `
                 background-color: white;
