@@ -14,8 +14,10 @@ export default class Job {
         const job = data => {
             let modifier = data.isNoMatOrFloat ? 0 : .25;
             this.changeOpeningValues(data.measurements.artWidth, data.measurements.artHeight, modifier);
+            return true
         }
         this.createInterval(job, intervalEndCallback)
+
     }
     addStars(intervalEndCallback) {
         const job = () => {
@@ -29,6 +31,7 @@ export default class Job {
             this.refs.workOrderInstructionsRef.dispatchEvent(new Event('blur'));
 
             this.refs.saveButtonRef.click();
+            return true
         }
         this.createInterval(job, intervalEndCallback)
     }
@@ -37,7 +40,10 @@ export default class Job {
         this.refs.workflowTab.click();
         const job = () => {
             //TODO add more checking in here, if its already clicked
-            document.querySelector('md-checkbox[aria-label="Digital Art Review"]').click();
+            const darBox = document.querySelector('md-checkbox[aria-label="Digital Art Review"]')
+            if(darBox.hasAttribute('disabled')) return false
+            darBox.click();
+            return true
         }
         this.createInterval(job, intervalEndCallback)
     }
@@ -52,7 +58,7 @@ export default class Job {
         // this.toggleBlastShield();
         this.intervalID = setInterval(() => {
 
-            let formReady = !this.refs.saveButtonRef.hasAttribute('disabled');
+            let formReady = !this.refs.saveButtonRef.hasAttribute('disabled')
             if (this.appState.debugMode) console.log('form ready: ', formReady);
             if (counter === this.dataArr.length) {// check if job is at the end
 
@@ -75,7 +81,8 @@ export default class Job {
                 }
                 if (!this.appState.waitingForJoinery) {
                     if (this.appState.debugMode) console.log('joinery Open!');
-                    func(data);
+                    let canComplete = func(data);
+                    if (!canComplete) return
                     if (this.appState.debugMode) console.log('provided function has run');
                     this.appState.waitingForJoinery = true;
 

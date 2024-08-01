@@ -78,8 +78,10 @@ export default class Scan {
         const isMessageFlagged = !obj.row.children[9].children[0].classList.contains("ng-hide");
         if (isMessageFlagged) obj.changeLogData.push('red flag');
 
-        const isNoMatOrFloat = !obj.row.children[9].children[this.NoMatOrFloatFlagNum].classList.contains("ng-hide");
-        const matDimMismatch = !obj.row.children[9].children[this.MatDimensionFlagNum].classList.contains("ng-hide");
+        // const isNoMatOrFloat = !obj.row.children[9].children[this.NoMatOrFloatFlagNum].classList.contains("ng-hide");
+        // const matDimMismatch = !obj.row.children[9].children[this.MatDimensionFlagNum].classList.contains("ng-hide");
+        const isNoMatOrFloat = !obj.row.children[9].children[refs.NoMatOrFloatFlagNum].classList.contains("ng-hide");
+        const matDimMismatch = !obj.row.children[9].children[refs.MatDimensionFlagNum].classList.contains("ng-hide");
         const isDimensionFlagged = isNoMatOrFloat || matDimMismatch
 
         const [artWidth, artHeight] = Util.processArtDimensions(refs.artDimensionsRef.innerText);

@@ -23,7 +23,14 @@ export default class UserInterface {
         this.refs.artDimensionsRef = document.querySelector(".artwork-info > div:last-of-type");
         this.refs.workOrderInstructionsRef = document.getElementById('input_40');
 
-        this.refs.borderT = document.getElementById('input_272')
+        this.refs.borderT = document.querySelector("#tab-content-6 > div > div > form > div.layout-column > div.layout-column input")
+            || document.getElementById('input_334')
+        // const isNoMatOrFloat = !obj.row.children[9].children[this.NoMatOrFloatFlagNum].classList.contains("ng-hide");
+        // const matDimMismatch = !obj.row.children[9].children[this.MatDimensionFlagNum].classList.contains("ng-hide");
+        this.refs.NoMatOrFloatFlagNum = Array.from(document.querySelector(".data-grid-table-row").children[9].children)
+            .findIndex((e)=> e.attributes.getNamedItem("ng-show").value === "workOrder.no_mat_size_mismatch")
+        this.refs.MatDimensionFlagNum = Array.from(document.querySelector(".data-grid-table-row").children[9].children)
+            .findIndex((e)=> e.attributes.getNamedItem("ng-show").value === "workOrder.mat_dim_mismatch")
 
         // this.workflowTab.click();
     }
